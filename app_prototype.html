@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语精听App (PRO版原型)</title>
+    <style>
+        /* 1. 基本样式和字体 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* 2. 模拟App容器 */
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            min-height: 800px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative; /* 用于FAB定位 */
+        }
+
+        /* 3. 页面模块 */
+        .page {
+            padding: 16px;
+            box-sizing: border-box;
+            width: 100%;
+            display: none; /* 默认所有页面隐藏 */
+        }
+        #page-A {
+            display: block; /* 默认显示主页 */
+        }
+
+        /* 4. 通用组件 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .header h2, .header h3 {
+            margin: 0;
+            flex-grow: 1;
+        }
+        .header .back-button {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            color: #007aff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .list-item:hover {
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .list-item .info h4 {
+            margin: 0 0 4px 0;
+            font-size: 1rem;
+            color: #111;
+        }
+        .list-item .info p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            font-size: 1.8rem; /* 增大图标 */
+            color: #007aff;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        }
+        .icon-button:hover {
+            opacity: 0.7;
+        }
+
+        .button-primary {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 16px 0;
+        }
+        .button-primary:hover {
+            background-color: #0056b3;
+        }
+
+        /* 5. 模块 A: 资源库 */
+        .fab {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 2.5rem;
+            line-height: 56px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            padding: 0;
+            padding-bottom: 4px; /* 调整+号位置 */
+        }
+        .fab:hover {
+            background-color: #0056b3;
+        }
+
+        /* 6. 模块 B: 详情与分割页 */
+        .host-player {
+            background: #f7f7f7;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .host-player progress {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .segment-list-container {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        #segment-list-empty {
+            text-align: center;
+            color: #888;
+            padding: 40px 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+        /* [新增] PRO 功能标记 */
+        .pro-feature-link {
+            text-align: center;
+            color: #007aff;
+            font-size: 0.9rem;
+            margin-top: -10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* 7. 模块 C: 片段精听页 */
+        .segment-player {
+            text-align: center;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 10px;
+        }
+        .segment-player #page-C-subtitle {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: -8px;
+        }
+        .segment-player progress {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .analysis-section {
+            margin-top: 24px;
+        }
+        #analysis-content {
+            background: #f9f9f9;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            display: none; /* 默认隐藏 */
+            line-height: 1.6;
+        }
+        #analysis-content h5 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #111;
+        }
+        #analysis-content ul {
+            padding-left: 20px;
+        }
+        #analysis-content li {
+            margin-bottom: 8px;
+        }
+        #analysis-content code {
+            background: #e0e0e0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        #analysis-content strong {
+            color: #0056b3;
+        }
+
+        /* 8. [新增] PRO 状态按钮 (Page A) */
+        .pro-button-free {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #007aff;
+            background: #e0f0ff;
+            border: 1px solid #007aff;
+            border-radius: 20px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+        .pro-button-pro {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #856404; /* Dark gold */
+            background: #fff3cd; /* Light gold */
+            border: 1px solid #ffeeba;
+            border-radius: 20px;
+            padding: 6px 12px;
+            cursor: default;
+        }
+        
+        /* 9. [新增] 付费墙弹窗 (Paywall Modal) */
+        .paywall-modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5); /* 遮罩层 */
+            justify-content: center;
+            align-items: center;
+        }
+        .paywall-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 320px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .paywall-content h3 {
+            margin-top: 0;
+            color: #111;
+        }
+        .paywall-content ul {
+            text-align: left;
+            padding-left: 20px;
+            margin: 16px 0;
+            color: #333;
+        }
+        .paywall-content li {
+            margin-bottom: 8px;
+        }
+        .button-secondary {
+            background: none;
+            border: none;
+            color: #888;
+            margin-top: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="page" id="page-A">
+            <div class="header">
+                <h2>资源库 (A)</h2>
+                <button id="pro-status-button" class="pro-button-free" onclick="showPaywall()">
+                    💎 免费版
+                </button>
+            </div>
+            
+            <div class="resource-list">
+                <div class="list-item" onclick="goToPageB('N1听力真题.mp3', true)">
+                    <div class="info">
+                        <h4>N1听力真题.mp3</h4>
+                        <p>总时长: 45:30 / 学习进度: 30%</p>
+                    </div>
+                    <button class="icon-button" onclick="event.stopPropagation(); alert('Quick Play: N1听力真题.mp3')">▶️</button>
+                </div>
+
+                <div class="list-item" onclick="goToPageB('NHK新闻-20251107.mp3', false)">
+                    <div class="info">
+                        <h4>NHK新闻-20251107.mp3</h4>
+                        <p>总时长: 12:15 / 学习进度: 0%</p>
+                    </div>
+                    <button class="icon-button" onclick="event.stopPropagation(); alert('Quick Play: NHK新闻.mp3')">▶️</button>
+                </div>
+
+                <div class="list-item" onclick="goToPageB('大家的日语-第30课.mp3', true)">
+                    <div class="info">
+                        <h4>大家的日语-第30课.mp3</h4>
+                        <p>总时长: 08:42 / 学习进度: 85%</p>
+                    </div>
+                    <button class="icon-button" onclick="event.stopPropagation(); alert('Quick Play: 大家的日语.mp3')">▶️</button>
+                </div>
+            </div>
+
+            <button class="fab" title="导入新资源" onclick="alert('触发“导入MP3文件”流程')">+</button>
+        </div>
+
+        <div class="page" id="page-B">
+            <div class="header">
+                <button class="back-button" onclick="goToPageA()">←</button>
+                <h3 id="page-B-title">...</h3>
+            </div>
+
+            <div class="host-player">
+                <h4>宿主音频播放器</h4>
+                <progress value="30" max="100"></progress>
+                <div class="player-controls">
+                    <button class="icon-button">⏪</button>
+                    <button class="icon-button" style="font-size: 2.5rem;">▶️</button>
+                    <button class="icon-button">⏩</button>
+                </div>
+            </div>
+
+            <button class="button-primary" onclick="runSplit()">通过静音点自动分割</button>
+            
+            <p class="pro-feature-link" onclick="showAdvancedSettings()">
+                (高级设置 💎)
+            </p>
+
+            <div class="segment-list-container">
+                <h4>学习单元</h4>
+                
+                <div id="segment-list-empty">
+                    <p>🎧</p>
+                    <p>此音频尚未分割。</p>
+                    <p>请点击上方按钮开始将其拆解为学习单元。</p>
+                </div>
+
+                <div id="segment-list-populated" style="display: none;">
+                    <div class="list-item" onclick="goToPageC('片段 1', '0:00 - 0:07', '日本銀行の植田和男総裁は...')">
+                        <div class="info">
+                            <h4>片段 1</h4>
+                            <p>0:00 - 0:07 (7s)</p>
+                        </div>
+                        <button class="icon-button" style="color: #ccc;">✅</button>
+                    </div>
+                    <div class="list-item" onclick="goToPageC('片段 2', '0:08 - 0:15', '今日の金融政策決定会合で...')">
+                        <div class="info">
+                            <h4>片段 2</h4>
+                            <p>0:08 - 0:15 (7s)</p>
+                        </div>
+                        <button class="icon-button" style="color: #ccc;">➡️</button>
+                    </div>
+                    <div class="list-item" onclick="goToPageC('片段 3', '0:16 - 0:24', '追加の利上げを見送ることを...')">
+                        <div class="info">
+                            <h4>片段 3</h4>
+                            <p>0:16 - 0:24 (8s)</p>
+                        </div>
+                        <button class="icon-button" style="color: #ccc;">➡️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page-C">
+            <div class="header">
+                <button class="back-button" onclick="goToPageB(null, true)">←</button>
+                <h3 id="page-C-title">...</h3>
+            </div>
+
+            <div class="segment-player">
+                <p id="page-C-subtitle">...</p>
+                <progress value="0" max="100" id="segment-progress"></progress>
+                
+                <div class="player-controls">
+                    <button class="icon-button" title="上一段">⏪</button>
+                    <button class="icon-button" style="font-size: 2.5rem;" onclick="this.innerText = (this.innerText === '▶️' ? '⏸️' : '▶️')">▶️</button>
+                    <button class="icon-button" title="下一段">⏩</button>
+                </div>
+                <div class="player-controls" style="margin-top: 20px; justify-content: space-around;">
+                    <button class="icon-button" title="单曲循环" onclick="this.style.color = (this.style.color === 'blue' ? '#555' : 'blue')">🔄</button>
+                    <span id="page-C-transcript" style="color: #333; font-size: 0.95rem; max-width: 60%; text-align: left;">(模拟文本...)</span>
+                    <button class="icon-button" title="随机播放所有片段">🔀</button>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <button class="button-primary" onclick="showAnalysis()">查看词法分析 (API) 💎</button>
+                
+                <div id="analysis-content">
+                    <h5>(模拟Markdown渲染结果)</h5>
+                    <p><strong>原文:</strong> 日本銀行の植田和男総裁は、金融政策決定会合で...</p>
+                    ---
+                    <ul>
+                        <li>
+                            <strong>日本銀行 (にほんぎんこう)</strong><br>
+                            [名词] 日本银行 (日本的中央银行)
+                        </li>
+                        <li>
+                            <strong>の</strong><br>
+                            [助词] (表所属) ...的
+                        </li>
+                        <li>
+                            <strong>植田和男 (うえだかずお)</strong><br>
+                            [专有名词] 植田和男 (人名)
+                        </li>
+                        <li>
+                            <strong>総裁 (そうさい)</strong><br>
+                            [名词] 总裁, 行长
+                        </li>
+                        <li>
+                            <strong>は</strong><br>
+                            [助词] (提示主题)
+                        </li>
+                        <li>
+                            <strong>金融政策 (きんゆうせいさく)</strong><br>
+                            [名词] 货币政策, 金融政策
+                        </li>
+                        <li>
+                            <code>決定会合 (けっていかいごう)</code><br>
+                            [名词] (政策)决定会议
+                        </li>
+                        <li>
+                            <strong>で</strong><br>
+                            [助词] (表示场所) 在...
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div> <div class="paywall-modal" id="paywall-modal">
+        <div class="paywall-content">
+            <h3>💎 升级到 PRO 版</h3>
+            <p>解锁所有高级功能，将精听提升到新水平：</p>
+            <ul>
+                <li><strong>高级分割设置</strong> (自定义静音时长)</li>
+                <li><strong>AI 词法分析</strong> (逐句语法和词汇详解)</li>
+                <li>无限制导入</li>
+                <li>云端同步</li>
+            </ul>
+            <button class="button-primary" onclick="upgradeToPro()">立即升级</button>
+            <button class="button-secondary" onclick="closePaywall()">以后再说</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- [新增] 全局状态 ---
+        let isProUser = false; // 默认是免费用户
+
+        // --- 简单的页面导航 (SPA模拟) ---
+        
+        const pageA = document.getElementById('page-A');
+        const pageB = document.getElementById('page-B');
+        const pageC = document.getElementById('page-C');
+        const paywallModal = document.getElementById('paywall-modal');
+
+        // (全局变量用于返回时恢复状态)
+        let currentFile = '';
+        let currentFileWasSegmented = false;
+
+        function goToPageA() {
+            pageA.style.display = 'block';
+            pageB.style.display = 'none';
+            pageC.style.display = 'none';
+        }
+
+        /**
+         * 导航到B页 (详情与分割)
+         * @param {string | null} fileName - MP3文件名
+         * @param {boolean} isSegmented - (需求 B3) 是否已分割 (用于数据持久化模拟)
+         */
+        function goToPageB(fileName, isSegmented) {
+            pageA.style.display = 'none';
+            pageB.style.display = 'block';
+            pageC.style.display = 'none';
+
+            // 如果是新进入, 则更新文件名和状态
+            if (fileName) {
+                currentFile = fileName;
+                currentFileWasSegmented = isSegmented;
+            }
+            
+            // 更新B页标题
+            document.getElementById('page-B-title').innerText = currentFile;
+
+            // (需求 B3 核心) 检查分割数据是否存在
+            const emptyState = document.getElementById('segment-list-empty');
+            const populatedList = document.getElementById('segment-list-populated');
+            
+            if (currentFileWasSegmented) {
+                // 状态二: 已分割
+                emptyState.style.display = 'none';
+                populatedList.style.display = 'block';
+            } else {
+                // 状态一: 未分割
+                emptyState.style.display = 'block';
+                populatedList.style.display = 'none';
+            }
+        }
+
+        /**
+         * 导航到C页 (精听)
+         * @param {string} segmentName - 片段名 (如: 片段 1)
+         * @param {string} timestamp - 时间戳 (如: 0:00 - 0:07)
+         * @param {string} transcript - 该片段的模拟文本
+         */
+        function goToPageC(segmentName, timestamp, transcript) {
+            pageA.style.display = 'none';
+            pageB.style.display = 'none';
+            pageC.style.display = 'block';
+
+            // 填充C页内容
+            document.getElementById('page-C-title').innerText = segmentName;
+            document.getElementById('page-C-subtitle').innerText = timestamp;
+            document.getElementById('page-C-transcript').innerText = transcript;
+            
+            // (设计建议) 隐藏分析内容，等待用户点击 (模拟缓存清除)
+            document.getElementById('analysis-content').style.display = 'none';
+        }
+
+
+        // --- 模拟功能 ---
+
+        /**
+         * 模拟 B2. 分割功能
+         */
+        function runSplit() {
+            alert('后台开始运行静音检测算法...');
+            
+            // 模拟延迟后显示结果
+            setTimeout(() => {
+                currentFileWasSegmented = true; // (持久化) 标记为已分割
+                const emptyState = document.getElementById('segment-list-empty');
+                const populatedList = document.getElementById('segment-list-populated');
+                
+                emptyState.style.display = 'none';
+                populatedList.style.display = 'block';
+                alert('分割完成！已生成3个学习单元。');
+            }, 1000); // 模拟1秒处理时间
+        }
+
+        // --- [新增] PRO 功能相关 ---
+
+        /**
+         * 显示付费墙
+         */
+        function showPaywall() {
+            if (isProUser) return; // 如果已经是PRO，则不显示
+            paywallModal.style.display = 'flex';
+        }
+
+        /**
+         * 关闭付费墙
+         */
+        function closePaywall() {
+            paywallModal.style.display = 'none';
+        }
+
+        /**
+         * 模拟升级到PRO
+         */
+        function upgradeToPro() {
+            isProUser = true;
+            closePaywall();
+            
+            // 更新主页(A)的按钮状态
+            const proButton = document.getElementById('pro-status-button');
+            proButton.innerText = '💎 PRO版';
+            proButton.className = 'pro-button-pro';
+            proButton.onclick = null; // 已经是PRO，禁用点击
+
+            alert('升级成功！您现在是PRO用户。所有 💎 功能已解锁。');
+        }
+
+        /**
+         * [修改] B模块: 显示高级设置
+         */
+        function showAdvancedSettings() {
+            if (isProUser) {
+                // PRO 用户的逻辑
+                alert('PRO功能: 打开高级设置\n\n- 静音阈值: -40 dB\n- 最小静音时长: 0.8s');
+            } else {
+                // 免费用户的逻辑
+                showPaywall();
+            }
+        }
+
+        /**
+         * [修改] C模块: 词法分析 (API请求与缓存)
+         */
+        function showAnalysis() {
+            // [修改] 检查PRO状态
+            if (!isProUser) {
+                showPaywall();
+                return; // 阻断后续执行
+            }
+
+            // --- 以下为PRO用户的逻辑 ---
+            const content = document.getElementById('analysis-content');
+            
+            // (设计建议) 模拟本地缓存
+            if (content.style.display === 'block') {
+                alert('已从缓存加载 (PRO)');
+                return;
+            }
+
+            alert('正在请求 PRO AI 词法分析 API...\n(提取当前片段的音频数据...)');
+            
+            // 模拟网络延迟
+            setTimeout(() => {
+                // (需求6) API返回Markdown (模拟)，App在本地渲染
+                content.style.display = 'block';
+            }, 800);
+        }
+
+        // --- 启动 ---
+        goToPageA();
+
+    </script>
+
+</body>
+</html>
