@@ -1,0 +1,6 @@
+# This directory contains feature modules
+# Each feature should have its own directory with:
+# - models/
+# - providers/
+# - screens/
+# - widgets/
