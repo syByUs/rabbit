@@ -13,35 +13,40 @@ class AudioSegmentationService {
   /// [audioPath] 音频文件路径（可以是 assets 或本地文件）
   /// [silenceDuration] 静音时长阈值（秒），默认 0.5 秒
   /// [silenceThreshold] 静音分贝阈值，默认 -40dB
+  /// @returns 返回检测到的音频片段列表，如果未检测到静音点则返回空列表
   static Future<List<AudioSegment>> detectSilencePoints({
     required String audioPath,
     double silenceDuration = 0.5,
     double silenceThreshold = -40,
   }) async {
-    final segments = <AudioSegment>[];
-
     try {
       // 使用 ffmpeg 的 silencedetect 滤镜检测静音点
       final command =
-          '-i "$audioPath" -af "silencedetect=n=${silenceThreshold}dB:d=$silenceDuration" -f null -';
+          '-i "$audioPath" -af "silencedetect=noise=${silenceThreshold}dB:d=$silenceDuration" -f null -';
+      print('command: ${command}');
 
-      await FFmpegKit.executeAsync(command, (session) async {
-        final returnCode = await session.getReturnCode();
+      // 使用 execute 代替 executeAsync，同步等待结果
+      final session = await FFmpegKit.execute(command);
+      final returnCode = await session.getReturnCode();
 
-        if (ReturnCode.isSuccess(returnCode)) {
-          // 获取输出日志
-          final logs = await session.getLogs();
-          final silencePoints = _parseSilencePoints(logs);
-          segments.addAll(silencePoints);
-        } else {
-          throw Exception('FFmpeg 执行失败: ${await session.getFailStackTrace()}');
+      if (ReturnCode.isSuccess(returnCode)) {
+        // 获取输出日志
+        final logs = await session.getLogs();
+        final segments = _parseSilencePoints(logs);
+
+        if (segments.isEmpty) {
+          print('未检测到静音点，直接返回空列表');
         }
-      });
+
+        return segments;
+      } else {
+        final failStackTrace = await session.getFailStackTrace();
+        final output = await session.getOutput();
+        throw Exception('FFmpeg 执行失败: ${failStackTrace ?? output}');
+      }
     } catch (e) {
       throw Exception('静音检测失败: $e');
     }
-
-    return segments;
   }
 
   /// 解析 ffmpeg 输出日志中的静音点
@@ -49,7 +54,7 @@ class AudioSegmentationService {
     final segments = <AudioSegment>[];
     final List<double> silenceStarts = [];
     final List<double> silenceEnds = [];
-
+    print('logs: ${logs}');
     for (var log in logs) {
       final message = log.getMessage() as String;
 
@@ -99,13 +104,94 @@ class AudioSegmentationService {
 
   /// 从日志消息中提取时间值
   static double? _extractTime(String message, String prefix) {
-    try {
-      final startIndex = message.indexOf(prefix) + prefix.length;
-      final endIndex = message.indexOf(' ', startIndex);
-      final timeStr = message.substring(startIndex, endIndex > 0 ? endIndex : null).trim();
-      return double.tryParse(timeStr);
-    } catch (e) {
+    // [silencedetect @ 0x14fa84840] silence_start: 3.891188
+    // silence_start:
+
+    // [silencedetect @ 0x14d097420] silence_end: 0.826375 | silence_duration: 0.826375
+    // silence_end:
+    RegExp regExp = RegExp(prefix + r'\s*([0-9.]+)');
+    Match? match = regExp.firstMatch(message);
+
+    if (match != null) {
+      double value = double.parse(match.group(1)!);
+      print('提取到的数值是: $value');
+      return value;
+    } else {
+      print('未找到匹配的数值');
       return null;
+    }
+
+  }
+
+  /// 按时间均匀分割音频文件（备用方案）
+  ///
+  /// [audioPath] 音频文件路径
+  /// [segmentDuration] 每个片段的时长（秒）
+  static Future<List<AudioSegment>> _splitByTime({
+    required String audioPath,
+    required double segmentDuration,
+  }) async {
+    try {
+      // 使用 ffprobe 获取音频总时长
+      final infoCommand = '-i "$audioPath"';
+      final infoSession = await FFmpegKit.execute(infoCommand);
+      final logs = await infoSession.getLogs();
+
+      // 查找时长信息
+      final durationLine = logs.firstWhere(
+        (log) {
+          final message = log.getMessage() as String?;
+          return message != null && message.contains('Duration:');
+        },
+        orElse: () => throw Exception('无法获取音频时长'),
+      );
+
+      final message = durationLine.getMessage() as String;
+      // Duration: 00:00:05.12, start: 0.000000, bitrate: 128 kb/s
+      final durationMatch = RegExp(r'Duration: (\d+):(\d+):(\d+\.\d+)').firstMatch(message);
+
+      if (durationMatch == null) {
+        throw Exception('无法解析音频时长');
+      }
+
+      // 解析时长
+      final hours = int.parse(durationMatch.group(1)!);
+      final minutes = int.parse(durationMatch.group(2)!);
+      final seconds = double.parse(durationMatch.group(3)!);
+      final totalDuration = hours * 3600 + minutes * 60 + seconds;
+
+      print('音频总时长: ${totalDuration}s，将按 ${segmentDuration}s 分割');
+
+      // 创建均匀分割的片段
+      final segments = <AudioSegment>[];
+      double currentStart = 0.0;
+
+      while (currentStart < totalDuration) {
+        final currentEnd = (currentStart + segmentDuration) < totalDuration
+            ? currentStart + segmentDuration
+            : totalDuration;
+
+        if (currentEnd > currentStart) {
+          segments.add(AudioSegment(
+            start: currentStart,
+            end: currentEnd,
+            isSilence: false,
+          ));
+        }
+
+        currentStart = currentEnd;
+      }
+
+      print('备用分割方案：生成 ${segments.length} 个均匀片段');
+      return segments;
+    } catch (e) {
+      print('备用分割方案失败: $e');
+      // 如果备用方案也失败，返回一个包含整个音频的片段（默认30秒）
+      return [AudioSegment(
+        start: 0.0,
+        end: 30.0,
+        isSilence: false,
+      )];
     }
   }
 
@@ -132,12 +218,13 @@ class AudioSegmentationService {
           final command =
               '-i "$inputPath" -ss ${segment.start} -t ${segment.duration} -acodec copy "$outputPath"';
 
-          await FFmpegKit.executeAsync(command, (session) async {
-            final returnCode = await session.getReturnCode();
-            if (ReturnCode.isSuccess(returnCode)) {
-              outputPaths.add(outputPath);
-            }
-          });
+          // 使用同步执行
+          final session = await FFmpegKit.execute(command);
+          final returnCode = await session.getReturnCode();
+
+          if (ReturnCode.isSuccess(returnCode)) {
+            outputPaths.add(outputPath);
+          }
         }
       }
     } catch (e) {

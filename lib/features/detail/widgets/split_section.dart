@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/themes/app_theme.dart';
@@ -6,6 +8,7 @@ import '../../../core/models/audio_segment_model.dart';
 import '../../../core/providers/app_state_provider.dart';
 import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/services/audio_cache_service.dart';
 import 'loading_indicator.dart';
 
 class SplitSectionWidget extends ConsumerStatefulWidget {
@@ -42,6 +45,69 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
     }
   }
 
+  Future<void> _clearSegmentation() async {
+    final isPro = ref.read(isProUserProvider);
+    if (!isPro) {
+      _showPaywall();
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空分割数据'),
+        content: const Text('确定要删除此音频的分割数据吗？此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      isSplitting = true;
+    });
+
+    try {
+      await StorageService.instance.initialize();
+      await StorageService.instance.deleteSegments(widget.resource.id);
+
+      // 更新资源状态
+      final updatedResource = widget.resource.copyWith(
+        segmentationStatus: SegmentationStatus.notSegmented,
+      );
+
+      if (mounted) {
+        ref.read(resourceListProvider.notifier).updateResource(updatedResource);
+
+        setState(() {
+          isSplitting = false;
+        });
+
+        _showMessage('已清空分割数据');
+
+        // 触发回调刷新列表
+        widget.onSegmentsGenerated?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isSplitting = false;
+        });
+        _showMessage('清空失败: ${e.toString()}');
+      }
+    }
+  }
+
   Future<void> _splitAudio() async {
     final isPro = ref.read(isProUserProvider);
     if (!isPro) {
@@ -54,15 +120,29 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
     });
 
     try {
-      // 初始化存储服务
+      // 初始化存储服务和缓存服务
       await StorageService.instance.initialize();
+      await AudioCacheService.instance.initialize();
+
+      print('开始分割音频: ${widget.resource.title}');
+
+      // 获取音频文件的本地缓存路径
+      final audioPath = await AudioCacheService.instance.getAudioFilePath(
+        'audio/${widget.resource.title}',
+      );
+
+      print('音频文件已缓存到: $audioPath');
+      print('文件是否存在: ${File(audioPath).existsSync()}');
 
       // 执行分割
+      print('执行 FFmpeg 静音检测...');
       final segments = await AudioSegmentationService.detectSilencePoints(
-        audioPath: 'audio/${widget.resource.title}',
-        silenceDuration: 0.5,
+        audioPath: audioPath,
+        silenceDuration: 0.6,
         silenceThreshold: -40.0,
       );
+
+      print('分割完成，检测到 ${segments.length} 个片段');
 
       if (segments.isNotEmpty) {
         // 保存分割信息
@@ -155,16 +235,37 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
               child: const Text('通过静音点自动分割'),
             ),
           const SizedBox(height: AppSpacing.sm),
-          GestureDetector(
-            onTap: _showPaywall,
-            child: Text(
-              '高级设置 💎',
-              style: TextStyle(
-                color: AppColors.textPro,
-                fontSize: 14.0,
-                fontWeight: FontWeight.w500,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              GestureDetector(
+                onTap: _showPaywall,
+                child: Text(
+                  '高级设置 💎',
+                  style: TextStyle(
+                    color: AppColors.textPro,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
+              Container(
+                width: 1,
+                height: 16,
+                color: AppColors.neutral200,
+              ),
+              GestureDetector(
+                onTap: _clearSegmentation,
+                child: Text(
+                  '清空分割',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 14.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
