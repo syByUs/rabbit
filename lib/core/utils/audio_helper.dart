@@ -1,8 +1,27 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/app_state_provider.dart';
 
 /// Helper class for playing audio files
 class AudioHelper {
   static final AudioPlayer _player = AudioPlayer();
+  static ProviderContainer? _providerContainer;
+
+  /// Initialize the audio helper with provider container
+  static void initialize(ProviderContainer container) {
+    _providerContainer = container;
+    _setupCompletionListener();
+  }
+
+  /// Setup listener for playback completion
+  static void _setupCompletionListener() {
+    _player.onPlayerComplete.listen((_) {
+      // Reset playback state when audio completes
+      if (_providerContainer != null) {
+        _providerContainer!.read(audioPlaybackProvider.notifier).stop();
+      }
+    });
+  }
 
   /// Play audio from assets
   static Future<void> playAsset(String assetPath) async {
