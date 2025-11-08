@@ -30,6 +30,15 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     _loadSegments();
   }
 
+  @override
+  void didUpdateWidget(SegmentListWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当widget更新时（资源ID改变），重新加载数据
+    if (oldWidget.resource.id != widget.resource.id) {
+      _loadSegments();
+    }
+  }
+
   Future<void> _loadSegments() async {
     setState(() {
       isLoading = true;

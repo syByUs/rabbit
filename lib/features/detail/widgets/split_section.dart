@@ -119,6 +119,9 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
       isSplitting = true;
     });
 
+    // 设置分割状态为进行中
+    ref.read(resourceSegmentationProvider(widget.resource.id).notifier).startSegmenting();
+
     try {
       // 初始化存储服务和缓存服务
       await StorageService.instance.initialize();
@@ -157,14 +160,14 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
         if (mounted) {
           ref.read(resourceListProvider.notifier).updateResource(updatedResource);
 
+          // 更新分割状态 - 这里会触发SegmentListWidget的UI刷新
+          ref.read(resourceSegmentationProvider(widget.resource.id).notifier).completeSegmenting(segments);
+
           setState(() {
             isSplitting = false;
           });
 
           _showMessage('音频分割完成！已生成 ${nonSilenceSegments.length} 个学习单元');
-
-          // 触发回调刷新列表
-          widget.onSegmentsGenerated?.call();
         }
       } else {
         if (mounted) {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/audio_segment_model.dart';
 import '../models/resource_model.dart';
 
 /// ============================================
@@ -173,4 +174,74 @@ final selectedCategoryProvider = StateNotifierProvider<SelectedCategoryNotifier,
 /// 当前选中资源Provider
 final selectedResourceProvider = StateNotifierProvider<SelectedResourceNotifier, AudioResource?>((ref) {
   return SelectedResourceNotifier();
+});
+
+/// ============================================
+/// 分割状态管理
+/// ============================================
+
+/// 音频分割状态
+class SegmentationState {
+  final bool isSegmenting;
+  final List<AudioSegment>? segments;
+  final String? error;
+
+  SegmentationState({
+    required this.isSegmenting,
+    this.segments,
+    this.error,
+  });
+
+  SegmentationState copyWith({
+    bool? isSegmenting,
+    List<AudioSegment>? segments,
+    String? error,
+  }) {
+    return SegmentationState(
+      isSegmenting: isSegmenting ?? this.isSegmenting,
+      segments: segments ?? this.segments,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// 音频分割状态管理
+class SegmentationNotifier extends StateNotifier<SegmentationState> {
+  SegmentationNotifier() : super(SegmentationState(isSegmenting: false));
+
+  void startSegmenting() {
+    state = SegmentationState(isSegmenting: true);
+  }
+
+  void completeSegmenting(List<AudioSegment> segments) {
+    state = SegmentationState(
+      isSegmenting: false,
+      segments: segments,
+    );
+  }
+
+  void failSegmenting(String error) {
+    state = SegmentationState(
+      isSegmenting: false,
+      error: error,
+    );
+  }
+
+  void clearSegments() {
+    state = SegmentationState(isSegmenting: false);
+  }
+}
+
+/// 资源分割状态Provider（按资源ID存储）
+final resourceSegmentationProvider = StateNotifierProvider.family<SegmentationNotifier, SegmentationState, String>((ref, resourceId) {
+  return SegmentationNotifier();
+});
+
+/// 当前资源分割状态Provider
+final currentResourceSegmentationProvider = Provider<SegmentationState>((ref) {
+  final resource = ref.watch(selectedResourceProvider);
+  if (resource == null) {
+    return SegmentationState(isSegmenting: false);
+  }
+  return ref.watch(resourceSegmentationProvider(resource.id));
 });
