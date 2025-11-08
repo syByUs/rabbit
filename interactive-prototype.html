@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabbit - 日语精听App | 交互原型</title>
+
+    <!-- 核心设计系统 -->
+    <style>
+        :root {
+            /* ============================================
+               设计令牌 - Design Tokens
+               ============================================ */
+
+            /* 色彩系统 */
+            --primary-50: #f0f7ff;
+            --primary-100: #e0f0ff;
+            --primary-500: #1e40af;
+            --primary-600: #1e3a8a;
+            --primary-700: #1e3a8a;
+
+            --secondary-500: #f472b6;
+            --secondary-600: #ec4899;
+            --accent-500: #60a5fa;
+            --success-500: #10b981;
+            --warning-500: #f59e0b;
+            --pro-gold: #f59e0b;
+            --pro-dark-gold: #d97706;
+
+            --neutral-0: #ffffff;
+            --neutral-50: #f9fafb;
+            --neutral-100: #f3f4f6;
+            --neutral-200: #e5e7eb;
+            --neutral-500: #6b7280;
+            --neutral-900: #111827;
+
+            /* 语义化色彩 */
+            --status-not-started: #9ca3af;
+            --status-learning: #60a5fa;
+            --status-mastered: #10b981;
+
+            /* 文字颜色 */
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --text-link: #1e40af;
+            --text-pro: #f59e0b;
+
+            /* 间距系统 (8px基础) */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+
+            /* 圆角系统 */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+
+            /* 阴影系统 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+            /* 字体系统 */
+            --font-primary: 'SF Pro Display', '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-display: 'SF Pro Display', Georgia, serif;
+            --font-mono: 'SF Mono', 'Monaco', monospace;
+
+            /* 字阶 */
+            --text-xs: 12px;
+            --text-sm: 14px;
+            --text-base: 16px;
+            --text-lg: 18px;
+            --text-xl: 20px;
+            --text-2xl: 24px;
+            --text-3xl: 32px;
+
+            /* 动效时间 */
+            --duration-fast: 150ms;
+            --duration-normal: 300ms;
+            --duration-slow: 500ms;
+
+            /* 容器限制 */
+            --container-max-width: 420px;
+            --container-padding: var(--space-md);
+        }
+
+        /* ============================================
+           基础样式重置
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: linear-gradient(135deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: var(--space-md);
+        }
+
+        /* ============================================
+           App 容器
+           ============================================ */
+        .app-container {
+            width: 100%;
+            max-width: var(--container-max-width);
+            min-height: 800px;
+            background: var(--neutral-0);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-2xl);
+            overflow: hidden;
+            position: relative;
+
+            /* 毛玻璃效果 */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* ============================================
+           页面基础样式
+           ============================================ */
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: var(--container-padding);
+            overflow-y: auto;
+            opacity: 0;
+            transform: translateX(100px);
+            pointer-events: none;
+            transition: all var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .page.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .page.exit {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        /* ============================================
+           头部组件
+           ============================================ */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-lg) var(--space-md);
+            border-bottom: 1px solid var(--neutral-200);
+            position: sticky;
+            top: 0;
+            background: var(--neutral-0);
+            z-index: 10;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .header h1, .header h2 {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* ============================================
+           PRO 按钮组件
+           ============================================ */
+        .pro-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+            border: 1px solid transparent;
+        }
+
+        .pro-badge.free {
+            background: var(--primary-50);
+            color: var(--primary-700);
+            border-color: var(--primary-100);
+        }
+
+        .pro-badge.free:hover {
+            background: var(--primary-100);
+            transform: translateY(-1px);
+        }
+
+        .pro-badge.pro {
+            background: linear-gradient(135deg, var(--pro-gold) 0%, var(--pro-dark-gold) 100%);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ============================================
+           搜索栏组件
+           ============================================ */
+        .search-bar {
+            margin: var(--space-md);
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 48px;
+            padding: 0 var(--space-lg);
+            border: 1px solid var(--neutral-200);
+            border-radius: var(--radius-full);
+            font-size: var(--text-base);
+            background: var(--neutral-0);
+            transition: all var(--duration-fast) ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-50);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: var(--space-lg);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           分类标签组件
+           ============================================ */
+        .filter-tabs {
+            display: flex;
+            gap: var(--space-sm);
+            padding: 0 var(--space-md);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-tab {
+            flex-shrink: 0;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+            background: var(--neutral-100);
+            color: var(--text-secondary);
+            border: 1px solid var(--neutral-200);
+        }
+
+        .filter-tab.active {
+            background: var(--primary-500);
+            color: white;
+            border-color: var(--primary-500);
+        }
+
+        /* ============================================
+           资源卡片组件
+           ============================================ */
+        .resource-card {
+            margin: var(--space-md);
+            background: var(--neutral-0);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid;
+            cursor: pointer;
+            transition: all var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 学习状态颜色 */
+        .resource-card.not-started {
+            border-left-color: var(--status-not-started);
+        }
+
+        .resource-card.learning {
+            border-left-color: var(--status-learning);
+        }
+
+        .resource-card.mastered {
+            border-left-color: var(--status-mastered);
+        }
+
+        /* 悬停效果 */
+        .resource-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* 卡片内容 */
+        .resource-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-sm);
+        }
+
+        .resource-card__title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .resource-card__play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: var(--primary-50);
+            border: none;
+            color: var(--primary-500);
+            cursor: pointer;
+            font-size: var(--text-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--duration-fast) ease;
+        }
+
+        .resource-card__play-btn:hover {
+            background: var(--primary-100);
+            transform: scale(1.1);
+        }
+
+        .resource-card__meta {
+            display: flex;
+            gap: var(--space-lg);
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        /* 进度可视化 */
+        .resource-card__progress {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .progress-ring {
+            width: 24px;
+            height: 24px;
+            transform: rotate(-90deg);
+            flex-shrink: 0;
+        }
+
+        .progress-ring__circle {
+            fill: none;
+            stroke-width: 3;
+        }
+
+        .progress-ring__background {
+            stroke: var(--neutral-200);
+        }
+
+        .progress-ring__progress {
+            stroke: var(--primary-500);
+            stroke-linecap: round;
+            transition: stroke-dashoffset var(--duration-slow) ease;
+        }
+
+        .progress-text {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           FAB 按钮组件
+           ============================================ */
+        .fab {
+            position: fixed;
+            bottom: calc(80px + var(--space-lg));
+            right: var(--space-lg);
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+            border: none;
+            font-size: var(--text-2xl);
+            cursor: pointer;
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .fab:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .fab:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        /* ============================================
+           音频播放器组件
+           ============================================ */
+        .audio-player {
+            margin: var(--space-md);
+            background: linear-gradient(135deg, var(--primary-50) 0%, var(--neutral-0) 100%);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .audio-player__title {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: var(--space-md);
+            color: var(--text-primary);
+        }
+
+        /* 音频可视化 */
+        .waveform-container {
+            height: 80px;
+            background: rgba(30, 64, 175, 0.05);
+            border-radius: var(--radius-md);
+            margin: var(--space-md) 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 var(--space-sm);
+        }
+
+        .waveform-bar {
+            width: 2px;
+            background: var(--primary-500);
+            border-radius: 1px;
+            transition: height var(--duration-fast) ease;
+        }
+
+        /* 播放控制 */
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-lg);
+            margin-top: var(--space-lg);
+        }
+
+        .control-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-full);
+            background: var(--neutral-0);
+            border: 1px solid var(--neutral-200);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-lg);
+            transition: all var(--duration-fast) ease;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-50);
+            color: var(--primary-500);
+            transform: scale(1.1);
+        }
+
+        .control-btn--play {
+            width: 64px;
+            height: 64px;
+            font-size: var(--text-2xl);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+            border: none;
+        }
+
+        .control-btn--play:hover {
+            background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+        }
+
+        /* 时间显示 */
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            margin-top: var(--space-sm);
+        }
+
+        /* ============================================
+           分割功能区域
+           ============================================ */
+        .split-section {
+            margin: var(--space-md);
+            padding: var(--space-lg);
+            background: var(--neutral-0);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--neutral-200);
+        }
+
+        .primary-button {
+            width: 100%;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--text-base);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .primary-button:active {
+            transform: translateY(0);
+        }
+
+        /* PRO 链接 */
+        .pro-link {
+            text-align: center;
+            margin-top: var(--space-sm);
+            color: var(--text-pro);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            font-weight: 500;
+            transition: color var(--duration-fast) ease;
+        }
+
+        .pro-link:hover {
+            color: var(--pro-dark-gold);
+            text-decoration: underline;
+        }
+
+        /* ============================================
+           学习单元列表
+           ============================================ */
+        .segment-section {
+            margin: var(--space-lg) 0;
+        }
+
+        .segment-section__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+            padding: 0 var(--space-md);
+        }
+
+        .section-title {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .segment-counter {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        .segment-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .segment-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--neutral-0);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+            border: 1px solid var(--neutral-200);
+        }
+
+        .segment-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-300);
+        }
+
+        .segment-item__number {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: var(--primary-50);
+            color: var(--primary-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-lg);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .segment-item__content {
+            flex: 1;
+        }
+
+        .segment-item__title {
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .segment-item__duration {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        .segment-item__status {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: var(--success-500);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-sm);
+        }
+
+        /* ============================================
+           字幕区域
+           ============================================ */
+        .subtitle-section {
+            margin: var(--space-md);
+            padding: var(--space-lg);
+            background: var(--neutral-0);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .subtitle-text {
+            font-size: var(--text-xl);
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 500;
+            line-height: 1.8;
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            background: var(--neutral-50);
+        }
+
+        .audio-settings {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin-top: var(--space-lg);
+            padding: var(--space-md);
+            background: var(--neutral-100);
+            border-radius: var(--radius-md);
+        }
+
+        .settings-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .settings-item span {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           词法分析面板
+           ============================================ */
+        .analysis-section {
+            margin: var(--space-md);
+            background: var(--neutral-0);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .analysis-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--neutral-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .analysis-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .analysis-content {
+            display: none;
+            padding: var(--space-lg);
+        }
+
+        .analysis-content.show {
+            display: block;
+            animation: fadeIn var(--duration-normal) ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .word-analysis {
+            padding: var(--space-md) 0;
+            border-bottom: 1px solid var(--neutral-100);
+        }
+
+        .word-analysis:last-child {
+            border-bottom: none;
+        }
+
+        .word {
+            font-size: var(--text-lg);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .word-reading {
+            font-size: var(--text-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .word-meaning {
+            font-size: var(--text-base);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           底部导航
+           ============================================ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: var(--container-max-width);
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--neutral-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+            height: 100%;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            color: var(--primary-500);
+        }
+
+        .nav-icon {
+            font-size: var(--text-xl);
+        }
+
+        .nav-label {
+            font-size: var(--text-xs);
+            font-weight: 500;
+        }
+
+        /* ============================================
+           模态框
+           ============================================ */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: all var(--duration-normal) ease;
+        }
+
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 320px;
+            background: var(--neutral-0);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            box-shadow: var(--shadow-2xl);
+            transform: scale(0.9);
+            transition: transform var(--duration-normal) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: var(--space-lg);
+        }
+
+        .modal-title {
+            font-size: var(--text-2xl);
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .modal-body {
+            margin-bottom: var(--space-lg);
+        }
+
+        .modal-body p {
+            font-size: var(--text-base);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: var(--space-md) 0;
+        }
+
+        .feature-list li {
+            padding: var(--space-sm) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .feature-icon {
+            color: var(--success-500);
+            font-size: var(--text-lg);
+        }
+
+        .modal-footer {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .price-tag {
+            font-size: var(--text-3xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            margin: var(--space-md) 0;
+        }
+
+        /* ============================================
+           加载动画
+           ============================================ */
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+            padding: var(--space-lg);
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: var(--radius-full);
+            background: var(--primary-500);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .loading-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* ============================================
+           状态徽章
+           ============================================ */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.new {
+            background: var(--secondary-500);
+            color: white;
+        }
+
+        .status-badge.pro {
+            background: linear-gradient(135deg, var(--pro-gold) 0%, var(--pro-dark-gold) 100%);
+            color: white;
+        }
+
+        /* ============================================
+           空状态
+           ============================================ */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-2xl);
+            text-align: center;
+            min-height: 300px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        /* ============================================
+           滚动条样式
+           ============================================ */
+        .page::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .page::-webkit-scrollbar-track {
+            background: var(--neutral-100);
+        }
+
+        .page::-webkit-scrollbar-thumb {
+            background: var(--neutral-300);
+            border-radius: 2px;
+        }
+
+        .page::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-500);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Page A: 资源库首页 -->
+        <div class="page active" id="page-A">
+            <div class="header">
+                <h1>资源库</h1>
+                <button class="pro-badge free" onclick="showPaywall()">
+                    💎 免费版
+                </button>
+            </div>
+
+            <!-- 搜索栏 -->
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="搜索音频资源..." id="search-input">
+                <span class="search-icon">🔍</span>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">全部</button>
+                <button class="filter-tab" data-filter="jlpt">JLPT</button>
+                <button class="filter-tab" data-filter="news">新闻</button>
+                <button class="filter-tab" data-filter="dialogue">对话</button>
+                <button class="filter-tab" data-filter="custom">自定义</button>
+            </div>
+
+            <!-- 资源列表 -->
+            <div class="resource-list" id="resource-list">
+                <!-- 动态生成的资源卡片 -->
+            </div>
+
+            <!-- 空状态 -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <div class="empty-icon">🎵</div>
+                <div class="empty-title">暂无音频资源</div>
+                <p>点击下方按钮开始导入音频</p>
+            </div>
+        </div>
+
+        <!-- Page B: 音频详情页 -->
+        <div class="page" id="page-B">
+            <div class="header">
+                <button class="back-button" onclick="goToPageA()">←</button>
+                <h2 id="page-b-title">音频标题</h2>
+                <div></div>
+            </div>
+
+            <!-- 音频播放器 -->
+            <div class="audio-player">
+                <h3 class="audio-player__title" id="audio-title">音频标题</h3>
+
+                <!-- 音频可视化 -->
+                <div class="waveform-container" id="waveform">
+                    <!-- 动态生成的波形条 -->
+                </div>
+
+                <!-- 播放控制 -->
+                <div class="player-controls">
+                    <button class="control-btn" onclick="audioControl('rewind')">⏪</button>
+                    <button class="control-btn control-btn--play" id="play-btn" onclick="audioControl('play')">▶️</button>
+                    <button class="control-btn" onclick="audioControl('forward')">⏩</button>
+                </div>
+
+                <!-- 时间显示 -->
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <!-- 分割功能 -->
+            <div class="split-section">
+                <button class="primary-button" onclick="splitAudio()">
+                    通过静音点自动分割
+                </button>
+                <div class="loading" id="split-loading">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <span style="margin-left: var(--space-md);">正在分析音频...</span>
+                </div>
+                <div class="pro-link" onclick="showPaywall()">高级设置 💎</div>
+            </div>
+
+            <!-- 学习单元列表 -->
+            <div class="segment-section">
+                <div class="segment-section__header">
+                    <h3 class="section-title">学习单元</h3>
+                    <span class="segment-counter" id="segment-count">0 单元</span>
+                </div>
+
+                <!-- 未分割状态 -->
+                <div class="empty-state" id="segment-empty">
+                    <div class="empty-icon">🎧</div>
+                    <div class="empty-title">此音频尚未分割</div>
+                    <p>点击下方按钮开始将其拆解为学习单元</p>
+                </div>
+
+                <!-- 已分割状态 -->
+                <div class="segment-list" id="segment-list" style="display: none;">
+                    <!-- 动态生成的学习单元 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Page C: 精听学习页 -->
+        <div class="page" id="page-C">
+            <div class="header">
+                <button class="back-button" onclick="goToPageB()">←</button>
+                <h2 id="page-c-title">片段 1</h2>
+                <div></div>
+            </div>
+
+            <!-- 字幕区域 -->
+            <div class="subtitle-section">
+                <div class="subtitle-text" id="subtitle-text">
+                    日本銀行の植田和男総裁は...
+                </div>
+
+                <!-- 播放控制 -->
+                <div class="player-controls">
+                    <button class="control-btn" title="上一段">⏪</button>
+                    <button class="control-btn control-btn--play" id="segment-play-btn" onclick="toggleSegmentPlay()">▶️</button>
+                    <button class="control-btn" title="下一段">⏩</button>
+                </div>
+
+                <!-- 音频设置 -->
+                <div class="audio-settings">
+                    <div class="settings-item">
+                        <button class="control-btn" onclick="toggleLoop()" id="loop-btn">🔄</button>
+                        <span>循环</span>
+                    </div>
+                    <div class="settings-item">
+                        <span id="segment-time">0:00 - 0:07</span>
+                    </div>
+                    <div class="settings-item">
+                        <button class="control-btn" onclick="toggleRandom()" id="random-btn">🔀</button>
+                        <span>随机</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 词法分析 -->
+            <div class="analysis-section">
+                <div class="analysis-header">
+                    <h3 class="analysis-title">词法分析</h3>
+                    <button class="pro-badge free" onclick="showAnalysis()">解锁PRO功能</button>
+                </div>
+
+                <!-- 分析内容 -->
+                <div class="analysis-content" id="analysis-content">
+                    <div class="loading" id="analysis-loading">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <span style="margin-left: var(--space-md);">正在AI分析...</span>
+                    </div>
+
+                    <div id="analysis-results" style="display: none;">
+                        <!-- 动态生成的词法分析结果 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 付费墙模态框 -->
+        <div class="modal" id="paywall-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">💎 解锁PRO版</h2>
+                    <p>享受极致的日语精听体验</p>
+                </div>
+
+                <div class="modal-body">
+                    <ul class="feature-list">
+                        <li><span class="feature-icon">✓</span>高级分割设置 (自定义静音时长)</li>
+                        <li><span class="feature-icon">✓</span>AI词法分析 (逐句语法详解)</li>
+                        <li><span class="feature-icon">✓</span>无限制导入音频</li>
+                        <li><span class="feature-icon">✓</span>云端同步</li>
+                    </ul>
+
+                    <div class="price-tag">¥68/年</div>
+                    <p style="text-align: center; color: var(--text-secondary); font-size: var(--text-sm);">
+                        7天免费试用，可随时取消
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="primary-button" onclick="upgradeToPro()">立即升级</button>
+                    <button class="control-btn" style="width: 100%; background: none; border: none; color: var(--text-secondary);" onclick="closePaywall()">以后再说</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 (占位，当前页面为主要界面) -->
+        <div class="bottom-nav" style="display: none;">
+            <a href="#" class="nav-item active">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">资源库</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">统计</span>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">设置</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 浮动操作按钮 FAB -->
+    <button class="fab" onclick="importAudio()" title="导入新音频">+</button>
+
+    <script>
+        // ============================================
+        // 应用状态管理
+        // ============================================
+
+        const AppState = {
+            isProUser: false,
+            currentPage: 'A',
+            currentAudio: null,
+            isPlaying: false,
+            resources: [
+                {
+                    id: 1,
+                    title: 'N1听力真题.mp3',
+                    duration: '45:30',
+                    progress: 30,
+                    status: 'learning',
+                    category: 'jlpt'
+                },
+                {
+                    id: 2,
+                    title: 'NHK新闻-20251107.mp3',
+                    duration: '12:15',
+                    progress: 0,
+                    status: 'not-started',
+                    category: 'news'
+                },
+                {
+                    id: 3,
+                    title: '大家的日语-第30课.mp3',
+                    duration: '08:42',
+                    progress: 85,
+                    status: 'mastered',
+                    category: 'dialogue'
+                }
+            ],
+            segments: [],
+            selectedSegment: null
+        };
+
+        // ============================================
+        // 页面导航
+        // ============================================
+
+        function navigateTo(pageId, params = {}) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+                page.classList.add('exit');
+                setTimeout(() => {
+                    page.classList.remove('exit');
+                }, 300);
+            });
+
+            // 显示目标页面
+            const targetPage = document.getElementById(pageId);
+            setTimeout(() => {
+                targetPage.classList.add('active');
+                AppState.currentPage = pageId.split('-')[1];
+            }, 50);
+
+            // 页面初始化
+            switch(pageId) {
+                case 'page-A':
+                    initPageA();
+                    break;
+                case 'page-B':
+                    initPageB(params.audio || AppState.currentAudio);
+                    break;
+                case 'page-C':
+                    initPageC(params.segment || AppState.selectedSegment);
+                    break;
+            }
+        }
+
+        function goToPageA() {
+            navigateTo('page-A');
+        }
+
+        function goToPageB(audio, forcePage = false) {
+            if (typeof audio === 'string' && audio !== null) {
+                // 从卡片点击
+                AppState.currentAudio = AppState.resources.find(r => r.title === audio) || AppState.resources[0];
+            } else if (forcePage) {
+                // 从片段页返回
+                navigateTo('page-B');
+                return;
+            }
+
+            navigateTo('page-B', { audio: AppState.currentAudio });
+        }
+
+        function goToPageC(segmentId) {
+            AppState.selectedSegment = segmentId;
+            navigateTo('page-C', { segment: segmentId });
+        }
+
+        // ============================================
+        // 初始化页面
+        // ============================================
+
+        function initPageA() {
+            renderResourceList();
+            initSearch();
+            initFilters();
+        }
+
+        function initPageB(audio) {
+            if (!audio) return;
+
+            // 更新标题
+            document.getElementById('page-b-title').textContent = audio.title;
+            document.getElementById('audio-title').textContent = audio.title;
+
+            // 生成波形
+            generateWaveform();
+
+            // 渲染学习单元
+            renderSegments();
+        }
+
+        function initPageC(segmentId) {
+            if (segmentId === null || segmentId === undefined) return;
+
+            document.getElementById('page-c-title').textContent = `片段 ${segmentId}`;
+            document.getElementById('segment-time').textContent = `0:00 - 0:0${segmentId}`;
+
+            // 重置分析内容
+            const analysisContent = document.getElementById('analysis-content');
+            analysisContent.classList.remove('show');
+            document.getElementById('analysis-results').style.display = 'none';
+        }
+
+        // ============================================
+        // 资源列表渲染
+        // ============================================
+
+        function renderResourceList(filteredResources = null) {
+            const resources = filteredResources || AppState.resources;
+            const listContainer = document.getElementById('resource-list');
+
+            if (resources.length === 0) {
+                document.getElementById('empty-state').style.display = 'flex';
+                listContainer.style.display = 'none';
+                return;
+            }
+
+            document.getElementById('empty-state').style.display = 'none';
+            listContainer.style.display = 'block';
+
+            listContainer.innerHTML = resources.map(resource => `
+                <div class="resource-card ${resource.status}" onclick="openAudio(${resource.id})">
+                    <div class="resource-card__header">
+                        <h3 class="resource-card__title">${resource.title}</h3>
+                        <button class="resource-card__play-btn" onclick="quickPlay(event, ${resource.id})">▶️</button>
+                    </div>
+                    <div class="resource-card__meta">
+                        <span>时长: ${resource.duration}</span>
+                        <span>类型: ${getCategoryName(resource.category)}</span>
+                    </div>
+                    <div class="resource-card__progress">
+                        <svg class="progress-ring">
+                            <circle class="progress-ring__circle progress-ring__background"
+                                    cx="12" cy="12" r="10"></circle>
+                            <circle class="progress-ring__circle progress-ring__progress"
+                                    cx="12" cy="12" r="10"
+                                    stroke-dasharray="62.8"
+                                    stroke-dashoffset="${62.8 - (62.8 * resource.progress / 100)}"></circle>
+                        </svg>
+                        <span class="progress-text">进度: ${resource.progress}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCategoryName(category) {
+            const names = {
+                jlpt: 'JLPT',
+                news: '新闻',
+                dialogue: '对话',
+                custom: '自定义'
+            };
+            return names[category] || '其他';
+        }
+
+        // ============================================
+        // 搜索和筛选
+        // ============================================
+
+        function initSearch() {
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const filtered = AppState.resources.filter(resource =>
+                    resource.title.toLowerCase().includes(query)
+                );
+                renderResourceList(filtered);
+            });
+        }
+
+        function initFilters() {
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    // 更新活跃状态
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    // 筛选资源
+                    const filter = e.target.dataset.filter;
+                    const filtered = filter === 'all'
+                        ? AppState.resources
+                        : AppState.resources.filter(r => r.category === filter);
+
+                    renderResourceList(filtered);
+                });
+            });
+        }
+
+        // ============================================
+        // 音频交互
+        // ============================================
+
+        function quickPlay(event, resourceId) {
+            event.stopPropagation();
+            const resource = AppState.resources.find(r => r.id === resourceId);
+            showToast(`正在播放: ${resource.title}`);
+        }
+
+        function openAudio(resourceId) {
+            const resource = AppState.resources.find(r => r.id === resourceId);
+            AppState.currentAudio = resource;
+            goToPageB(resource.title);
+        }
+
+        // ============================================
+        // 波形可视化
+        // ============================================
+
+        function generateWaveform() {
+            const waveform = document.getElementById('waveform');
+            const barCount = 50;
+
+            waveform.innerHTML = Array.from({ length: barCount }, (_, i) => {
+                const height = Math.random() * 60 + 20;
+                const delay = (i / barCount) * 1000;
+                return `<div class="waveform-bar" style="height: ${height}px; animation-delay: ${delay}ms;"></div>`;
+            }).join('');
+
+            // 添加动画
+            const bars = waveform.querySelectorAll('.waveform-bar');
+            bars.forEach(bar => {
+                bar.style.animation = 'pulse 1.5s ease-in-out infinite';
+            });
+        }
+
+        // ============================================
+        // 音频控制
+        // ============================================
+
+        function audioControl(action) {
+            const playBtn = document.getElementById('play-btn');
+
+            switch(action) {
+                case 'play':
+                    AppState.isPlaying = !AppState.isPlaying;
+                    playBtn.textContent = AppState.isPlaying ? '⏸️' : '▶️';
+
+                    // 模拟进度更新
+                    if (AppState.isPlaying) {
+                        simulateAudioProgress();
+                    }
+                    break;
+                case 'rewind':
+                    showToast('快退 5 秒');
+                    break;
+                case 'forward':
+                    showToast('快进 5 秒');
+                    break;
+            }
+        }
+
+        function simulateAudioProgress() {
+            if (!AppState.isPlaying) return;
+
+            const currentTime = document.getElementById('current-time');
+            let seconds = 0;
+
+            const interval = setInterval(() => {
+                if (!AppState.isPlaying) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                seconds++;
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                currentTime.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // ============================================
+        // 音频分割
+        // ============================================
+
+        function splitAudio() {
+            const loadingEl = document.getElementById('split-loading');
+            const button = event.target || event.srcElement;
+
+            // 显示加载状态
+            button.style.display = 'none';
+            loadingEl.classList.add('show');
+
+            // 模拟分割过程
+            setTimeout(() => {
+                // 生成分割结果
+                AppState.segments = [
+                    { id: 1, title: '片段 1', duration: '0:00 - 0:07 (7s)', status: 'completed' },
+                    { id: 2, title: '片段 2', duration: '0:08 - 0:15 (7s)', status: 'current' },
+                    { id: 3, title: '片段 3', duration: '0:16 - 0:24 (8s)', status: 'pending' },
+                    { id: 4, title: '片段 4', duration: '0:25 - 0:32 (7s)', status: 'pending' },
+                    { id: 5, title: '片段 5', duration: '0:33 - 0:40 (7s)', status: 'pending' }
+                ];
+
+                // 更新UI
+                renderSegments();
+
+                // 隐藏加载状态
+                loadingEl.classList.remove('show');
+                button.style.display = 'block';
+
+                showToast('音频分割完成！已生成5个学习单元');
+            }, 2000);
+        }
+
+        function renderSegments() {
+            const emptyState = document.getElementById('segment-empty');
+            const segmentList = document.getElementById('segment-list');
+            const segmentCount = document.getElementById('segment-count');
+
+            if (AppState.segments.length === 0) {
+                emptyState.style.display = 'flex';
+                segmentList.style.display = 'none';
+                segmentCount.textContent = '0 单元';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            segmentList.style.display = 'flex';
+            segmentCount.textContent = `${AppState.segments.length} 单元`;
+
+            segmentList.innerHTML = AppState.segments.map(segment => `
+                <div class="segment-item" onclick="openSegment(${segment.id})">
+                    <div class="segment-item__number">${segment.id}</div>
+                    <div class="segment-item__content">
+                        <div class="segment-item__title">${segment.title}</div>
+                        <div class="segment-item__duration">${segment.duration}</div>
+                    </div>
+                    <div class="segment-item__status">
+                        ${getStatusIcon(segment.status)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                completed: '✅',
+                current: '➡️',
+                pending: '⏳'
+            };
+            return icons[status] || '⏳';
+        }
+
+        function openSegment(segmentId) {
+            goToPageC(segmentId);
+        }
+
+        // ============================================
+        // 片段播放控制
+        // ============================================
+
+        function toggleSegmentPlay() {
+            const playBtn = document.getElementById('segment-play-btn');
+            AppState.isPlaying = !AppState.isPlaying;
+            playBtn.textContent = AppState.isPlaying ? '⏸️' : '▶️';
+
+            if (AppState.isPlaying) {
+                simulateSegmentProgress();
+            }
+        }
+
+        function simulateSegmentProgress() {
+            if (!AppState.isPlaying) return;
+
+            const subtitle = document.getElementById('subtitle-text');
+            const sentences = [
+                '日本銀行の植田和男総裁は...',
+                '金融政策決定会合で...',
+                '追加の利上げを見送ることを決定しました。'
+            ];
+
+            let currentSentence = 0;
+            const interval = setInterval(() => {
+                if (!AppState.isPlaying || currentSentence >= sentences.length) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                subtitle.textContent = sentences[currentSentence];
+                currentSentence++;
+            }, 2000);
+        }
+
+        function toggleLoop() {
+            const loopBtn = document.getElementById('loop-btn');
+            const isActive = loopBtn.style.color === 'var(--primary-500)';
+
+            if (isActive) {
+                loopBtn.style.color = 'var(--text-primary)';
+                loopBtn.style.background = 'var(--neutral-0)';
+                showToast('循环模式已关闭');
+            } else {
+                loopBtn.style.color = 'var(--primary-500)';
+                loopBtn.style.background = 'var(--primary-50)';
+                showToast('循环模式已开启');
+            }
+        }
+
+        function toggleRandom() {
+            const randomBtn = document.getElementById('random-btn');
+            const isActive = randomBtn.style.color === 'var(--primary-500)';
+
+            if (isActive) {
+                randomBtn.style.color = 'var(--text-primary)';
+                randomBtn.style.background = 'var(--neutral-0)';
+                showToast('随机播放已关闭');
+            } else {
+                randomBtn.style.color = 'var(--primary-500)';
+                randomBtn.style.background = 'var(--primary-50)';
+                showToast('随机播放已开启');
+            }
+        }
+
+        // ============================================
+        // 词法分析
+        // ============================================
+
+        function showAnalysis() {
+            if (!AppState.isProUser) {
+                showPaywall();
+                return;
+            }
+
+            const analysisContent = document.getElementById('analysis-content');
+            const loading = document.getElementById('analysis-loading');
+            const results = document.getElementById('analysis-results');
+
+            analysisContent.classList.add('show');
+            loading.classList.add('show');
+            results.style.display = 'none';
+
+            // 模拟API请求
+            setTimeout(() => {
+                loading.classList.remove('show');
+
+                const analysisData = [
+                    {
+                        word: '日本銀行',
+                        reading: 'にほんぎんこう',
+                        meaning: '[名词] 日本银行 (日本的中央银行)'
+                    },
+                    {
+                        word: '総裁',
+                        reading: 'そうさい',
+                        meaning: '[名词] 总裁, 行长'
+                    },
+                    {
+                        word: '金融政策',
+                        reading: 'きんゆうせいさく',
+                        meaning: '[名词] 货币政策, 金融政策'
+                    },
+                    {
+                        word: '決定会合',
+                        reading: 'けっていかいごう',
+                        meaning: '[名词] (政策)决定会议'
+                    }
+                ];
+
+                results.innerHTML = analysisData.map(item => `
+                    <div class="word-analysis">
+                        <div class="word">${item.word}</div>
+                        <div class="word-reading">${item.reading}</div>
+                        <div class="word-meaning">${item.meaning}</div>
+                    </div>
+                `).join('');
+
+                results.style.display = 'block';
+                showToast('词法分析完成！');
+            }, 1500);
+        }
+
+        // ============================================
+        // PRO 功能
+        // ============================================
+
+        function showPaywall() {
+            const modal = document.getElementById('paywall-modal');
+            modal.classList.add('show');
+        }
+
+        function closePaywall() {
+            const modal = document.getElementById('paywall-modal');
+            modal.classList.remove('show');
+        }
+
+        function upgradeToPro() {
+            AppState.isProUser = true;
+
+            // 更新UI
+            document.querySelectorAll('.pro-badge').forEach(badge => {
+                badge.className = 'pro-badge pro';
+                badge.innerHTML = '💎 PRO版';
+                badge.onclick = null;
+            });
+
+            closePaywall();
+            showToast('🎉 恭喜！您已升级为PRO用户！');
+
+            // 重新渲染当前页面
+            if (AppState.currentPage === 'C') {
+                initPageC(AppState.selectedSegment);
+            }
+        }
+
+        // ============================================
+        // 工具函数
+        // ============================================
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--neutral-900);
+                color: white;
+                padding: 12px 24px;
+                border-radius: var(--radius-md);
+                font-size: var(--text-sm);
+                z-index: 1001;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity var(--duration-fast) ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.style.opacity = 1, 10);
+            setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        function importAudio() {
+            showToast('正在打开文件选择器...');
+            // 实际应用中这里会打开文件选择器
+        }
+
+        // ============================================
+        // 应用初始化
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPageA();
+
+            // 键盘事件
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closePaywall();
+                }
+            });
+
+            // 点击模态框背景关闭
+            document.getElementById('paywall-modal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    closePaywall();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
