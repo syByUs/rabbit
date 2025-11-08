@@ -54,7 +54,7 @@ class LibraryScreen extends ConsumerWidget {
       body: Column(
         children: [
           // 搜索栏
-          const SearchBarWidget(),
+          // const SearchBarWidget(),
 
           // 分类标签
           const CategoryTabsWidget(),

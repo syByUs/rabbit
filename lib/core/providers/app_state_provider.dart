@@ -27,6 +27,63 @@ class UserStateNotifier extends StateNotifier<UserState> {
   }
 }
 
+/// 音频播放状态
+class AudioPlaybackState {
+  final String? currentResourceId;
+  final bool isPlaying;
+  final Duration? duration;
+  final Duration? position;
+
+  AudioPlaybackState({
+    this.currentResourceId,
+    required this.isPlaying,
+    this.duration,
+    this.position,
+  });
+
+  AudioPlaybackState copyWith({
+    String? currentResourceId,
+    bool? isPlaying,
+    Duration? duration,
+    Duration? position,
+  }) {
+    return AudioPlaybackState(
+      currentResourceId: currentResourceId ?? this.currentResourceId,
+      isPlaying: isPlaying ?? this.isPlaying,
+      duration: duration ?? this.duration,
+      position: position ?? this.position,
+    );
+  }
+}
+
+/// 音频播放状态管理
+class AudioPlaybackNotifier extends StateNotifier<AudioPlaybackState> {
+  AudioPlaybackNotifier() : super(AudioPlaybackState(isPlaying: false));
+
+  void startPlaying(String resourceId) {
+    state = AudioPlaybackState(
+      currentResourceId: resourceId,
+      isPlaying: true,
+    );
+  }
+
+  void pause() {
+    state = state.copyWith(isPlaying: false);
+  }
+
+  void resume() {
+    state = state.copyWith(isPlaying: true);
+  }
+
+  void stop() {
+    state = AudioPlaybackState(isPlaying: false);
+  }
+
+  bool isCurrentResource(String resourceId) {
+    return state.currentResourceId == resourceId;
+  }
+}
+
 /// 资源列表状态
 class ResourceListNotifier extends StateNotifier<List<AudioResource>> {
   ResourceListNotifier() : super(sampleResources);
@@ -88,7 +145,14 @@ final userStateProvider = StateNotifierProvider<UserStateNotifier, UserState>((r
 
 /// PRO用户状态
 final isProUserProvider = Provider<bool>((ref) {
+  // todo release环境下需要将代码注释
+  return true;
   return ref.watch(userStateProvider).isProUser;
+});
+
+/// 音频播放状态Provider
+final audioPlaybackProvider = StateNotifierProvider<AudioPlaybackNotifier, AudioPlaybackState>((ref) {
+  return AudioPlaybackNotifier();
 });
 
 /// 资源列表Provider

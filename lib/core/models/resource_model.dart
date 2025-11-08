@@ -123,6 +123,24 @@ List<AudioResource> sampleResources = [
     isSegmented: true,
     lastStudied: DateTime.now().subtract(const Duration(hours: 3)),
   ),
+  AudioResource(
+    id: 'getvoice1',
+    title: 'getvoice1.mp3',
+    duration: '03:15',
+    progress: 0,
+    status: LearningStatus.notStarted,
+    category: ResourceCategory.custom,
+    isSegmented: false,
+  ),
+  AudioResource(
+    id: 'getvoice2',
+    title: 'getvoice2.mp3',
+    duration: '02:42',
+    progress: 0,
+    status: LearningStatus.notStarted,
+    category: ResourceCategory.custom,
+    isSegmented: false,
+  ),
 ];
 
 /// ============================================

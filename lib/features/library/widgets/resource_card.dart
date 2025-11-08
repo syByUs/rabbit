@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/providers/app_state_provider.dart';
+import '../../../core/utils/audio_helper.dart';
 import '../../detail/detail_screen.dart';
 
 class ResourceCard extends ConsumerWidget {
@@ -13,6 +14,11 @@ class ResourceCard extends ConsumerWidget {
     super.key,
     required this.resource,
   });
+
+  void _playQuickAudio() {
+    String assetPath = 'audio/${resource.title}';
+    AudioHelper.playAsset(assetPath);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,7 +73,7 @@ class ResourceCard extends ConsumerWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         IconButton(
-          onPressed: () => {},
+          onPressed: _playQuickAudio,
           icon: const Icon(Icons.play_circle_outline, size: 32.0),
           color: AppColors.primary500,
           splashRadius: 24.0,
