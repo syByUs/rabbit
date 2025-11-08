@@ -27,7 +27,7 @@ class UserStateNotifier extends Notifier<UserState> {
   }
 
   void upgradeToPro() {
-    ref.state = ref.state.copyWith(isProUser: true);
+    state = state.copyWith(isProUser: true);
   }
 }
 
@@ -72,22 +72,22 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   }
 
   void startPlaying(String resourceId) {
-    ref.state = AudioPlaybackState(
+    state = AudioPlaybackState(
       currentResourceId: resourceId,
       isPlaying: true,
     );
   }
 
   void pause() {
-    ref.state = ref.state.copyWith(isPlaying: false);
+    state = state.copyWith(isPlaying: false);
   }
 
   void resume() {
-    ref.state = ref.state.copyWith(isPlaying: true);
+    state = state.copyWith(isPlaying: true);
   }
 
   void stop() {
-    ref.state = AudioPlaybackState(isPlaying: false);
+    state = AudioPlaybackState(isPlaying: false);
   }
 }
 
@@ -99,13 +99,13 @@ class ResourceListNotifier extends Notifier<List<AudioResource>> {
   }
 
   void updateResource(AudioResource updatedResource) {
-    ref.state = ref.state.map((resource) {
+    state = state.map((resource) {
       return resource.id == updatedResource.id ? updatedResource : resource;
     }).toList();
   }
 
   void addResource(AudioResource newResource) {
-    ref.state = [...ref.state, newResource];
+    state = [...state, newResource];
   }
 }
 
@@ -117,11 +117,11 @@ class SearchQueryNotifier extends Notifier<String> {
   }
 
   void update(String query) {
-    ref.state = query;
+    state = query;
   }
 
   void clear() {
-    ref.state = '';
+    state = '';
   }
 }
 
@@ -133,7 +133,7 @@ class SelectedCategoryNotifier extends Notifier<String> {
   }
 
   void select(String category) {
-    ref.state = category;
+    state = category;
   }
 }
 
@@ -145,11 +145,11 @@ class SelectedResourceNotifier extends Notifier<AudioResource?> {
   }
 
   void select(AudioResource resource) {
-    ref.state = resource;
+    state = resource;
   }
 
   void clear() {
-    ref.state = null;
+    state = null;
   }
 }
 
