@@ -3,7 +3,7 @@ import '../models/audio_segment_model.dart';
 import '../models/resource_model.dart';
 
 /// ============================================
-/// 应用状态管理
+/// 应用状态管理（迁移到 Notifier 版本）
 /// ============================================
 
 /// PRO用户状态
@@ -19,7 +19,7 @@ class UserState {
   }
 }
 
-/// 应用状态Notifier
+/// 应用状态Notifier - Migrated to Notifier
 class UserStateNotifier extends Notifier<UserState> {
   @override
   UserState build() {
@@ -64,7 +64,7 @@ class AudioPlaybackState {
   }
 }
 
-/// 音频播放状态管理
+/// 音频播放状态管理 - Migrated to Notifier
 class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   @override
   AudioPlaybackState build() {
@@ -91,7 +91,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   }
 }
 
-/// 资源列表状态
+/// 资源列表状态 - Migrated to Notifier
 class ResourceListNotifier extends Notifier<List<AudioResource>> {
   @override
   List<AudioResource> build() {
@@ -99,17 +99,17 @@ class ResourceListNotifier extends Notifier<List<AudioResource>> {
   }
 
   void updateResource(AudioResource updatedResource) {
-    ref.state = ref.state.map((resource) {
+    ref.state = state.map((resource) {
       return resource.id == updatedResource.id ? updatedResource : resource;
     }).toList();
   }
 
   void addResource(AudioResource newResource) {
-    ref.state = [...ref.state, newResource];
+    ref.state = [...state, newResource];
   }
 }
 
-/// 搜索查询状态
+/// 搜索查询状态 - Migrated to Notifier
 class SearchQueryNotifier extends Notifier<String> {
   @override
   String build() {
@@ -125,7 +125,7 @@ class SearchQueryNotifier extends Notifier<String> {
   }
 }
 
-/// 选中的分类
+/// 选中的分类 - Migrated to Notifier
 class SelectedCategoryNotifier extends Notifier<String> {
   @override
   String build() {
@@ -137,7 +137,7 @@ class SelectedCategoryNotifier extends Notifier<String> {
   }
 }
 
-/// 当前选中的音频
+/// 当前选中的音频 - Migrated to Notifier
 class SelectedResourceNotifier extends Notifier<AudioResource?> {
   @override
   AudioResource? build() {
@@ -154,10 +154,10 @@ class SelectedResourceNotifier extends Notifier<AudioResource?> {
 }
 
 /// ============================================
-/// Providers
+/// Providers (使用 NotifierProvider)
 /// ============================================
 
-/// 用户状态Provider
+/// 用户状态Provider - 使用 NotifierProvider
 final userStateProvider = NotifierProvider<UserStateNotifier, UserState>(() {
   return UserStateNotifier();
 });
@@ -169,22 +169,22 @@ final isProUserProvider = Provider<bool>((ref) {
   return ref.watch(userStateProvider).isProUser;
 });
 
-/// 音频播放状态Provider
+/// 音频播放状态Provider - 使用 NotifierProvider
 final audioPlaybackProvider = NotifierProvider<AudioPlaybackNotifier, AudioPlaybackState>(() {
   return AudioPlaybackNotifier();
 });
 
-/// 资源列表Provider
+/// 资源列表Provider - 使用 NotifierProvider
 final resourceListProvider = NotifierProvider<ResourceListNotifier, List<AudioResource>>(() {
   return ResourceListNotifier();
 });
 
-/// 搜索查询Provider
+/// 搜索查询Provider - 使用 NotifierProvider
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
   return SearchQueryNotifier();
 });
 
-/// 选中分类Provider
+/// 选中分类Provider - 使用 NotifierProvider
 final selectedCategoryProvider = NotifierProvider<SelectedCategoryNotifier, String>(() {
   return SelectedCategoryNotifier();
 });
@@ -195,7 +195,7 @@ final selectedResourceProvider = NotifierProvider<SelectedResourceNotifier, Audi
 });
 
 /// ============================================
-/// 分割状态管理
+/// 分割状态管理（保留原始实现）
 /// ============================================
 
 /// 音频分割状态
