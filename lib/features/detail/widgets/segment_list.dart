@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
+import '../../../core/models/audio_segment_model.dart';
+import '../../../core/services/storage_service.dart';
+import '../../../core/models/resource_model.dart';
 import '../../learning/learning_screen.dart';
+import 'loading_indicator.dart';
 
 class SegmentListWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
@@ -17,7 +21,42 @@ class SegmentListWidget extends ConsumerStatefulWidget {
 }
 
 class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
-  bool showGeneratedSegments = false;
+  bool isLoading = false;
+  List<AudioSegment>? segments;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSegments();
+  }
+
+  Future<void> _loadSegments() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await StorageService.instance.initialize();
+      final loadedSegments = await StorageService.instance.loadSegments(widget.resource.id);
+
+      if (mounted) {
+        setState(() {
+          segments = loadedSegments;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  void refreshSegments() {
+    _loadSegments();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +78,9 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                if (showGeneratedSegments)
+                if (segments != null && segments!.isNotEmpty)
                   Text(
-                    '5 单元',
+                    '${segments!.where((s) => !s.isSilence).length} 单元',
                     style: TextStyle(
                       fontSize: 14.0,
                       color: AppColors.textSecondary,
@@ -52,7 +91,11 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           ),
           const SizedBox(height: AppSpacing.md),
 
-          if (!showGeneratedSegments)
+          if (isLoading)
+            const Center(
+              child: LoadingIndicator(message: '正在加载分割数据...'),
+            )
+          else if (segments == null || segments!.isEmpty)
             Container(
               padding: const EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
@@ -80,7 +123,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    '点击下方按钮开始将其拆解为学习单元',
+                    '点击上方"通过静音点自动分割"按钮开始',
                     style: TextStyle(
                       fontSize: 14.0,
                       color: AppColors.textSecondary,
@@ -98,80 +141,57 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   }
 
   Widget _buildSegmentList() {
-    final segments = _generateSampleSegments();
+    // 过滤掉静音片段，只显示非静音的学习单元
+    final learningSegments = segments!.where((segment) => !segment.isSilence).toList();
+
+    if (learningSegments.isEmpty) {
+      return const Text(
+        '没有可用的学习单元',
+        style: TextStyle(color: AppColors.textSecondary),
+      );
+    }
 
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: segments.length,
+      itemCount: learningSegments.length,
       itemBuilder: (context, index) {
-        final segment = segments[index];
+        final segment = learningSegments[index];
         return _SegmentItem(
           segment: segment,
+          index: index + 1,
           onTap: () => _openSegment(segment),
         );
       },
     );
   }
 
-  List<LearningSegment> _generateSampleSegments() {
-    return [
-      LearningSegment(
-        id: '1',
-        title: '片段 1',
-        startTime: const Duration(seconds: 0),
-        endTime: const Duration(seconds: 7),
-        transcript: '日本銀行の植田和男総裁は',
-        isCompleted: true,
-      ),
-      LearningSegment(
-        id: '2',
-        title: '片段 2',
-        startTime: const Duration(seconds: 8),
-        endTime: const Duration(seconds: 15),
-        transcript: '金融政策決定会合で',
-        isCompleted: false,
-      ),
-      LearningSegment(
-        id: '3',
-        title: '片段 3',
-        startTime: const Duration(seconds: 16),
-        endTime: const Duration(seconds: 24),
-        transcript: '追加の利上げを見送ることを',
-        isCompleted: false,
-      ),
-      LearningSegment(
-        id: '4',
-        title: '片段 4',
-        startTime: const Duration(seconds: 25),
-        endTime: const Duration(seconds: 32),
-        transcript: '決定しました',
-        isCompleted: false,
-      ),
-    ];
-  }
-
-  void _openSegment(LearningSegment segment) {
+  void _openSegment(AudioSegment segment) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => LearningScreen(segment: segment),
+        builder: (context) => LearningScreen(
+          segment: LearningSegment(
+            id: 'segment_${segment.start}',
+            title: '片段 ${segment.start.toStringAsFixed(1)}s - ${segment.end.toStringAsFixed(1)}s',
+            startTime: Duration(seconds: segment.start.toInt()),
+            endTime: Duration(seconds: segment.end.toInt()),
+            transcript: '音频片段内容 - 时间: ${segment.timeRange}',
+            isCompleted: false,
+          ),
+        ),
       ),
     );
-  }
-
-  void toggleSegments() {
-    setState(() {
-      showGeneratedSegments = true;
-    });
   }
 }
 
 class _SegmentItem extends StatelessWidget {
-  final LearningSegment segment;
+  final AudioSegment segment;
+  final int index;
   final VoidCallback onTap;
 
   const _SegmentItem({
     required this.segment,
+    required this.index,
     required this.onTap,
   });
 
@@ -203,7 +223,7 @@ class _SegmentItem extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      segment.id,
+                      '$index',
                       style: const TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.w700,
@@ -218,7 +238,7 @@ class _SegmentItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        segment.title,
+                        '片段 $index',
                         style: const TextStyle(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w600,
@@ -233,6 +253,14 @@ class _SegmentItem extends StatelessWidget {
                           color: AppColors.textSecondary,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.xs / 2),
+                      Text(
+                        '时长: ${segment.duration.toStringAsFixed(1)}秒',
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -240,14 +268,12 @@ class _SegmentItem extends StatelessWidget {
                   width: 32.0,
                   height: 32.0,
                   decoration: BoxDecoration(
-                    color: segment.isCompleted
-                        ? AppColors.success500
-                        : AppColors.neutral200,
+                    color: AppColors.primary500,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Icon(
-                      segment.isCompleted ? Icons.check : Icons.arrow_forward,
+                      Icons.play_arrow,
                       size: 16.0,
                       color: Colors.white,
                     ),

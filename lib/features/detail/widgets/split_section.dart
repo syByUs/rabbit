@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
+import '../../../core/models/audio_segment_model.dart';
 import '../../../core/providers/app_state_provider.dart';
+import '../../../core/services/audio_segmentation_service.dart';
+import '../../../core/services/storage_service.dart';
 import 'loading_indicator.dart';
 
 class SplitSectionWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
+  final VoidCallback? onSegmentsGenerated;
 
   const SplitSectionWidget({
     super.key,
     required this.resource,
+    this.onSegmentsGenerated,
   });
 
   @override
@@ -19,9 +24,25 @@ class SplitSectionWidget extends ConsumerStatefulWidget {
 
 class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
   bool isSplitting = false;
-  bool showSegments = false;
 
-  void _splitAudio() {
+  @override
+  void initState() {
+    super.initState();
+    _checkIfAlreadySegmented();
+  }
+
+  Future<void> _checkIfAlreadySegmented() async {
+    // 初始化存储服务
+    await StorageService.instance.initialize();
+
+    final hasSegments = await StorageService.instance.hasSegments(widget.resource.id);
+    if (hasSegments && mounted) {
+      // 如果已经有分割数据，触发回调加载
+      widget.onSegmentsGenerated?.call();
+    }
+  }
+
+  Future<void> _splitAudio() async {
     final isPro = ref.read(isProUserProvider);
     if (!isPro) {
       _showPaywall();
@@ -32,17 +53,55 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
       isSplitting = true;
     });
 
-    // 模拟分割过程
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
+    try {
+      // 初始化存储服务
+      await StorageService.instance.initialize();
 
-      setState(() {
-        isSplitting = false;
-        showSegments = true;
-      });
+      // 执行分割
+      final segments = await AudioSegmentationService.detectSilencePoints(
+        audioPath: 'audio/${widget.resource.title}',
+        silenceDuration: 0.5,
+        silenceThreshold: -40.0,
+      );
 
-      _showMessage('音频分割完成！已生成5个学习单元');
-    });
+      if (segments.isNotEmpty) {
+        // 保存分割信息
+        await StorageService.instance.saveSegments(widget.resource.id, segments);
+
+        // 更新资源状态
+        final nonSilenceSegments = segments.where((s) => !s.isSilence && s.duration > 1.0).toList();
+        final updatedResource = widget.resource.copyWith(
+          segmentationStatus: SegmentationStatus.segmented,
+        );
+
+        if (mounted) {
+          ref.read(resourceListProvider.notifier).updateResource(updatedResource);
+
+          setState(() {
+            isSplitting = false;
+          });
+
+          _showMessage('音频分割完成！已生成 ${nonSilenceSegments.length} 个学习单元');
+
+          // 触发回调刷新列表
+          widget.onSegmentsGenerated?.call();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            isSplitting = false;
+          });
+          _showMessage('未检测到适合的分割点');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isSplitting = false;
+        });
+        _showMessage('分割失败: ${e.toString()}');
+      }
+    }
   }
 
   void _showPaywall() {
@@ -53,9 +112,11 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -202,6 +263,25 @@ class PaywallModal extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+extension on AudioResource {
+  AudioResource copyWith({
+    SegmentationStatus? segmentationStatus,
+    List<AudioSegment>? segments,
+  }) {
+    return AudioResource(
+      id: id,
+      title: title,
+      duration: duration,
+      progress: progress,
+      status: status,
+      category: category,
+      segmentationStatus: segmentationStatus ?? this.segmentationStatus,
+      lastStudied: lastStudied,
+      segments: segments ?? this.segments,
     );
   }
 }
