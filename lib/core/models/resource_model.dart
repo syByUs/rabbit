@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../themes/app_theme.dart';
 import 'dart:math';
+import 'audio_segment_model.dart';
 
 /// ============================================
 /// 音频资源模型
@@ -25,6 +26,16 @@ enum LearningStatus {
   const LearningStatus(this.value);
 }
 
+enum SegmentationStatus {
+  notSegmented('未分割'),
+  segmenting('分割中'),
+  segmented('已分割'),
+  failed('分割失败');
+
+  final String label;
+  const SegmentationStatus(this.label);
+}
+
 class AudioResource {
   final String id;
   final String title;
@@ -32,8 +43,9 @@ class AudioResource {
   final int progress; // 0-100
   final LearningStatus status;
   final ResourceCategory category;
-  final bool isSegmented;
+  final SegmentationStatus segmentationStatus;
   final DateTime? lastStudied;
+  final List<AudioSegment>? segments;
 
   AudioResource({
     required this.id,
@@ -42,8 +54,9 @@ class AudioResource {
     required this.progress,
     required this.status,
     required this.category,
-    this.isSegmented = false,
+    this.segmentationStatus = SegmentationStatus.notSegmented,
     this.lastStudied,
+    this.segments,
   });
 
   /// 生成环形进度条路径
@@ -101,7 +114,6 @@ List<AudioResource> sampleResources = [
     progress: 0,
     status: LearningStatus.notStarted,
     category: ResourceCategory.custom,
-    isSegmented: false,
   ),
   AudioResource(
     id: 'getvoice2',
@@ -110,7 +122,6 @@ List<AudioResource> sampleResources = [
     progress: 0,
     status: LearningStatus.notStarted,
     category: ResourceCategory.custom,
-    isSegmented: false,
   ),
   AudioResource(
     id: '1',
@@ -119,7 +130,6 @@ List<AudioResource> sampleResources = [
     progress: 30,
     status: LearningStatus.learning,
     category: ResourceCategory.jlpt,
-    isSegmented: true,
     lastStudied: DateTime.now().subtract(const Duration(days: 1)),
   ),
   AudioResource(
@@ -129,7 +139,6 @@ List<AudioResource> sampleResources = [
     progress: 0,
     status: LearningStatus.notStarted,
     category: ResourceCategory.news,
-    isSegmented: false,
   ),
   AudioResource(
     id: '3',
@@ -138,7 +147,6 @@ List<AudioResource> sampleResources = [
     progress: 85,
     status: LearningStatus.mastered,
     category: ResourceCategory.dialogue,
-    isSegmented: true,
     lastStudied: DateTime.now().subtract(const Duration(hours: 3)),
   ),
 ];

@@ -6,6 +6,7 @@ import '../../../core/models/resource_model.dart';
 import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/audio_helper.dart';
 import '../../detail/detail_screen.dart';
+import 'segmentation_dialog.dart';
 
 class ResourceCard extends ConsumerWidget {
   final AudioResource resource;
@@ -21,11 +22,9 @@ class ResourceCard extends ConsumerWidget {
     final isPlaying = isCurrent && playbackState.isPlaying;
 
     if (isPlaying) {
-      // 当前正在播放，暂停
       AudioHelper.pause();
       ref.read(audioPlaybackProvider.notifier).pause();
     } else {
-      // 停止当前音频（如果有），播放新音频
       if (playbackState.currentResourceId != null) {
         AudioHelper.stop();
       }
@@ -36,11 +35,20 @@ class ResourceCard extends ConsumerWidget {
     }
   }
 
+  void _showSegmentationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => SegmentationDialog(resource: resource),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playbackState = ref.watch(audioPlaybackProvider);
     final isCurrent = playbackState.isCurrentResource(resource.id);
     final isPlaying = isCurrent && playbackState.isPlaying;
+
+    bool showSegmentation = resource.segmentationStatus != SegmentationStatus.notSegmented;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -50,6 +58,7 @@ class ResourceCard extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: () => _openResource(context, resource),
+          onLongPress: () => _showSegmentationDialog(context),
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
@@ -63,8 +72,10 @@ class ResourceCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(isPlaying, ref),
-                const SizedBox(height: AppSpacing.sm),
+                _buildHeader(isPlaying, ref, context),
+                if (showSegmentation) const SizedBox(height: AppSpacing.sm),
+                if (showSegmentation) _buildSegmentationStatus(),
+                const SizedBox(height: AppSpacing.md),
                 _buildMeta(),
                 const SizedBox(height: AppSpacing.md),
                 _buildProgress(),
@@ -76,7 +87,7 @@ class ResourceCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(bool isPlaying, WidgetRef ref) {
+  Widget _buildHeader(bool isPlaying, WidgetRef ref, BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -91,6 +102,21 @@ class ResourceCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        IconButton(
+          icon: Icon(
+            resource.segmentationStatus == SegmentationStatus.segmenting
+                ? Icons.hourglass_empty
+                : resource.segmentationStatus == SegmentationStatus.segmented
+                    ? Icons.check_circle
+                    : resource.segmentationStatus == SegmentationStatus.failed
+                        ? Icons.error
+                        : Icons.cut,
+            color: AppColors.primary500,
+            size: 20.0,
+          ),
+          onPressed: () => _showSegmentationDialog(context),
+          tooltip: '分割音频',
+        ),
         const SizedBox(width: AppSpacing.sm),
         IconButton(
           onPressed: () => _togglePlayback(ref),
@@ -103,6 +129,60 @@ class ResourceCard extends ConsumerWidget {
           tooltip: isPlaying ? '暂停' : '播放',
         ),
       ],
+    );
+  }
+
+  Widget _buildSegmentationStatus() {
+    Color statusColor;
+    String statusText;
+
+    switch (resource.segmentationStatus) {
+      case SegmentationStatus.segmenting:
+        statusColor = AppColors.warning500;
+        statusText = '分割中...';
+        break;
+      case SegmentationStatus.segmented:
+        statusColor = AppColors.success500;
+        statusText = '已分割 (${resource.segments?.length ?? 0}段)';
+        break;
+      case SegmentationStatus.failed:
+        statusColor = AppColors.warning500;
+        statusText = '分割失败';
+        break;
+      default:
+        statusColor = AppColors.textSecondary;
+        statusText = '未分割';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            resource.segmentationStatus == SegmentationStatus.segmenting
+                ? Icons.hourglass_empty
+                : resource.segmentationStatus == SegmentationStatus.segmented
+                    ? Icons.check_circle
+                    : Icons.error,
+            size: 14.0,
+            color: statusColor,
+          ),
+          const SizedBox(width: 4.0),
+          Text(
+            statusText,
+            style: TextStyle(
+              fontSize: 12.0,
+              color: statusColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -137,7 +217,6 @@ class ResourceCard extends ConsumerWidget {
   Widget _buildProgress() {
     return Row(
       children: [
-        // 环形进度条
         Stack(
           alignment: Alignment.center,
           children: [
@@ -203,9 +282,7 @@ class ResourceCard extends ConsumerWidget {
 
   void _openResource(BuildContext context, AudioResource resource) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => DetailScreen(resource: resource),
-      ),
+      MaterialPageRoute(builder: (context) => DetailScreen(resource: resource)),
     );
   }
 }
