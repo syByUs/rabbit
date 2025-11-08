@@ -95,6 +95,24 @@ class AudioResource {
 // 示例数据
 List<AudioResource> sampleResources = [
   AudioResource(
+    id: 'getvoice1',
+    title: 'getvoice1.mp3',
+    duration: '03:15',
+    progress: 0,
+    status: LearningStatus.notStarted,
+    category: ResourceCategory.custom,
+    isSegmented: false,
+  ),
+  AudioResource(
+    id: 'getvoice2',
+    title: 'getvoice2.mp3',
+    duration: '02:42',
+    progress: 0,
+    status: LearningStatus.notStarted,
+    category: ResourceCategory.custom,
+    isSegmented: false,
+  ),
+  AudioResource(
     id: '1',
     title: 'N1听力真题.mp3',
     duration: '45:30',
@@ -122,24 +140,6 @@ List<AudioResource> sampleResources = [
     category: ResourceCategory.dialogue,
     isSegmented: true,
     lastStudied: DateTime.now().subtract(const Duration(hours: 3)),
-  ),
-  AudioResource(
-    id: 'getvoice1',
-    title: 'getvoice1.mp3',
-    duration: '03:15',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.custom,
-    isSegmented: false,
-  ),
-  AudioResource(
-    id: 'getvoice2',
-    title: 'getvoice2.mp3',
-    duration: '02:42',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.custom,
-    isSegmented: false,
   ),
 ];
 

@@ -15,13 +15,33 @@ class ResourceCard extends ConsumerWidget {
     required this.resource,
   });
 
-  void _playQuickAudio() {
-    String assetPath = 'audio/${resource.title}';
-    AudioHelper.playAsset(assetPath);
+  void _togglePlayback(WidgetRef ref) {
+    final playbackState = ref.read(audioPlaybackProvider);
+    final isCurrent = playbackState.isCurrentResource(resource.id);
+    final isPlaying = isCurrent && playbackState.isPlaying;
+
+    if (isPlaying) {
+      // 当前正在播放，暂停
+      AudioHelper.pause();
+      ref.read(audioPlaybackProvider.notifier).pause();
+    } else {
+      // 停止当前音频（如果有），播放新音频
+      if (playbackState.currentResourceId != null) {
+        AudioHelper.stop();
+      }
+
+      String assetPath = 'audio/${resource.title}';
+      AudioHelper.playAsset(assetPath);
+      ref.read(audioPlaybackProvider.notifier).startPlaying(resource.id);
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final playbackState = ref.watch(audioPlaybackProvider);
+    final isCurrent = playbackState.isCurrentResource(resource.id);
+    final isPlaying = isCurrent && playbackState.isPlaying;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: AppDecorations.cardDecoration,
@@ -43,7 +63,7 @@ class ResourceCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
+                _buildHeader(isPlaying, ref),
                 const SizedBox(height: AppSpacing.sm),
                 _buildMeta(),
                 const SizedBox(height: AppSpacing.md),
@@ -56,7 +76,7 @@ class ResourceCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isPlaying, WidgetRef ref) {
     return Row(
       children: [
         Expanded(
@@ -73,11 +93,14 @@ class ResourceCard extends ConsumerWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         IconButton(
-          onPressed: _playQuickAudio,
-          icon: const Icon(Icons.play_circle_outline, size: 32.0),
-          color: AppColors.primary500,
+          onPressed: () => _togglePlayback(ref),
+          icon: Icon(
+            isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
+            size: 32.0,
+            color: AppColors.primary500,
+          ),
           splashRadius: 24.0,
-          tooltip: '快速播放',
+          tooltip: isPlaying ? '暂停' : '播放',
         ),
       ],
     );

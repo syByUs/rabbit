@@ -54,6 +54,10 @@ class AudioPlaybackState {
       position: position ?? this.position,
     );
   }
+
+  bool isCurrentResource(String resourceId) {
+    return currentResourceId == resourceId;
+  }
 }
 
 /// 音频播放状态管理
@@ -77,10 +81,6 @@ class AudioPlaybackNotifier extends StateNotifier<AudioPlaybackState> {
 
   void stop() {
     state = AudioPlaybackState(isPlaying: false);
-  }
-
-  bool isCurrentResource(String resourceId) {
-    return state.currentResourceId == resourceId;
   }
 }
 
