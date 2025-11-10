@@ -8,36 +8,41 @@ import '../models/audio_segment_model.dart';
 /// 音频分割服务
 /// 使用 ffmpeg_kit 检测静音点并分割音频
 class AudioSegmentationService {
-  /// 检测音频文件中的静音点
+  /// 检测音频文件中的静音点并生成非静音片段
   ///
   /// [audioPath] 音频文件路径（可以是 assets 或本地文件）
   /// [silenceDuration] 静音时长阈值（秒），默认 0.5 秒
   /// [silenceThreshold] 静音分贝阈值，默认 -40dB
-  /// @returns 返回检测到的音频片段列表，如果未检测到静音点则返回空列表
+  /// @returns 返回检测到的非静音片段列表
   static Future<List<AudioSegment>> detectSilencePoints({
     required String audioPath,
     double silenceDuration = 0.5,
     double silenceThreshold = -40,
   }) async {
     try {
-      // 使用 ffmpeg 的 silencedetect 滤镜检测静音点
-      final command =
-          '-i "$audioPath" -af "silencedetect=noise=${silenceThreshold}dB:d=$silenceDuration" -f null -';
-      print('command: ${command}');
+      // 1. 先获取音频总时长
+      final totalDuration = await _getAudioDuration(audioPath);
+      print('🎵 音频总时长: ${totalDuration.toStringAsFixed(2)}秒');
 
-      // 使用 execute 代替 executeAsync，同步等待结果
+      // 2. 使用 ffmpeg 的 silencedetect 滤镜检测静音点
+      final command =
+          '-i "$audioPath" -af "silencedetect=noise=${silenceThreshold.toInt()}dB:d=$silenceDuration" -f null -';
+      print('🔍 FFmpeg命令: $command');
+
       final session = await FFmpegKit.execute(command);
       final returnCode = await session.getReturnCode();
 
       if (ReturnCode.isSuccess(returnCode)) {
-        // 获取输出日志
+        // 获取输出日志并解析
         final logs = await session.getLogs();
-        final segments = _parseSilencePoints(logs);
+        final segments = _parseSilencePoints(logs, totalDuration);
 
         if (segments.isEmpty) {
-          print('未检测到静音点，直接返回空列表');
+          print('⚠️ 未检测到静音点，返回整个音频作为一个片段');
+          return [AudioSegment(start: 0.0, end: totalDuration)];
         }
 
+        print('✅ 成功生成 ${segments.length} 个非静音片段');
         return segments;
       } else {
         final failStackTrace = await session.getFailStackTrace();
@@ -49,16 +54,23 @@ class AudioSegmentationService {
     }
   }
 
-  /// 解析 ffmpeg 输出日志中的静音点
-  static List<AudioSegment> _parseSilencePoints(List<dynamic> logs) {
+  /// 解析 ffmpeg 输出日志中的静音点，只生成非静音片段
+  /// 
+  /// [logs] FFmpeg 日志列表
+  /// [totalDuration] 音频总时长（秒）
+  /// @returns 非静音片段列表
+  static List<AudioSegment> _parseSilencePoints(
+    List<dynamic> logs,
+    double totalDuration,
+  ) {
     final segments = <AudioSegment>[];
     final List<double> silenceStarts = [];
     final List<double> silenceEnds = [];
-    print('logs: ${logs}');
+    
+    // 第一阶段：从日志中提取静音时间点
     for (var log in logs) {
       final message = log.getMessage() as String;
-
-      // 解析静音开始时间
+      
       if (message.contains('silence_start:')) {
         final startTime = _extractTime(message, 'silence_start:');
         if (startTime != null) {
@@ -66,7 +78,6 @@ class AudioSegmentationService {
         }
       }
 
-      // 解析静音结束时间
       if (message.contains('silence_end:')) {
         final endTime = _extractTime(message, 'silence_end:');
         if (endTime != null) {
@@ -74,53 +85,99 @@ class AudioSegmentationService {
         }
       }
     }
+    
+    print('📊 检测到 ${silenceStarts.length} 个静音开始点，${silenceEnds.length} 个静音结束点');
 
-    // 创建音频片段
+    // 处理异常情况：未配对的静音点
+    if (silenceStarts.length > silenceEnds.length) {
+      print('⚠️ 音频末尾有未结束的静音，补充 totalDuration 作为结束点');
+      silenceEnds.add(totalDuration);
+    }
+
+    // 第二阶段：基于静音点构建非静音片段
     double currentStart = 0.0;
+    
     for (int i = 0; i < silenceStarts.length; i++) {
-      final segmentEnd = silenceStarts[i];
-
-      if (segmentEnd > currentStart) {
+      final silenceStart = silenceStarts[i];
+      final silenceEnd = i < silenceEnds.length ? silenceEnds[i] : totalDuration;
+      
+      // 添加非静音片段（静音开始之前的部分）
+      if (silenceStart > currentStart) {
         segments.add(AudioSegment(
           start: currentStart,
-          end: segmentEnd,
-          isSilence: false,
+          end: silenceStart,
         ));
+        print('  🔊 片段${segments.length}: ${currentStart.toStringAsFixed(2)}s - ${silenceStart.toStringAsFixed(2)}s (${(silenceStart - currentStart).toStringAsFixed(2)}s)');
       }
-
-      // 添加静音片段
-      if (i < silenceEnds.length) {
-        segments.add(AudioSegment(
-          start: segmentEnd,
-          end: silenceEnds[i],
-          isSilence: true,
-        ));
-        currentStart = silenceEnds[i];
-      }
+      
+      // 跳过静音区域，更新下一个非静音片段的起点
+      currentStart = silenceEnd;
+      print('  🔇 跳过静音: ${silenceStart.toStringAsFixed(2)}s - ${silenceEnd.toStringAsFixed(2)}s');
+    }
+    
+    // ✅ 关键修复：添加最后一个非静音片段（静音结束后到音频末尾）
+    if (currentStart < totalDuration) {
+      segments.add(AudioSegment(
+        start: currentStart,
+        end: totalDuration,
+      ));
+      print('  🔊 片段${segments.length}: ${currentStart.toStringAsFixed(2)}s - ${totalDuration.toStringAsFixed(2)}s (${(totalDuration - currentStart).toStringAsFixed(2)}s)');
     }
 
     return segments;
   }
 
-  /// 从日志消息中提取时间值
-  static double? _extractTime(String message, String prefix) {
-    // [silencedetect @ 0x14fa84840] silence_start: 3.891188
-    // silence_start:
+  /// 获取音频文件的总时长
+  /// 
+  /// [audioPath] 音频文件路径
+  /// @returns 音频时长（秒）
+  static Future<double> _getAudioDuration(String audioPath) async {
+    try {
+      // 使用 ffmpeg 获取音频信息
+      final command = '-i "$audioPath" -f null -';
+      final session = await FFmpegKit.execute(command);
+      final logs = await session.getAllLogs();
+      
+      // 在日志中查找 Duration 信息
+      // 格式示例: Duration: 00:01:35.12, start: 0.000000, bitrate: 128 kb/s
+      for (var log in logs) {
+        final message = log.getMessage() as String? ?? '';
+        final match = RegExp(r'Duration: (\d+):(\d+):(\d+\.\d+)').firstMatch(message);
+        
+        if (match != null) {
+          final hours = int.parse(match.group(1)!);
+          final minutes = int.parse(match.group(2)!);
+          final seconds = double.parse(match.group(3)!);
+          final totalDuration = hours * 3600 + minutes * 60 + seconds;
+          
+          print('⏱️ 解析到时长: ${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s = ${totalDuration.toStringAsFixed(2)}s');
+          return totalDuration;
+        }
+      }
+      
+      throw Exception('无法从 FFmpeg 日志中解析音频时长');
+    } catch (e) {
+      print('❌ 获取音频时长失败: $e');
+      throw Exception('获取音频时长失败: $e');
+    }
+  }
 
+  /// 从日志消息中提取时间值
+  /// 
+  /// [message] FFmpeg 日志消息
+  /// [prefix] 时间前缀（如 "silence_start:" 或 "silence_end:"）
+  /// @returns 提取到的时间值（秒），失败返回 null
+  static double? _extractTime(String message, String prefix) {
+    // 示例格式:
+    // [silencedetect @ 0x14fa84840] silence_start: 3.891188
     // [silencedetect @ 0x14d097420] silence_end: 0.826375 | silence_duration: 0.826375
-    // silence_end:
-    RegExp regExp = RegExp(prefix + r'\s*([0-9.]+)');
-    Match? match = regExp.firstMatch(message);
+    final regExp = RegExp(prefix + r'\s*([0-9.]+)');
+    final match = regExp.firstMatch(message);
 
     if (match != null) {
-      double value = double.parse(match.group(1)!);
-      print('提取到的数值是: $value');
-      return value;
-    } else {
-      print('未找到匹配的数值');
-      return null;
+      return double.parse(match.group(1)!);
     }
-
+    return null;
   }
 
   /// 按时间均匀分割音频文件（备用方案）
@@ -175,7 +232,6 @@ class AudioSegmentationService {
           segments.add(AudioSegment(
             start: currentStart,
             end: currentEnd,
-            isSilence: false,
           ));
         }
 
@@ -190,7 +246,6 @@ class AudioSegmentationService {
       return [AudioSegment(
         start: 0.0,
         end: 30.0,
-        isSilence: false,
       )];
     }
   }
@@ -208,11 +263,11 @@ class AudioSegmentationService {
     final outputPaths = <String>[];
 
     try {
-      // 为每个非静音片段创建单独的音频文件
+      // 为每个片段创建单独的音频文件（所有片段都是非静音）
       int segmentIndex = 0;
       for (var segment in segments) {
-        if (!segment.isSilence && segment.duration > 1.0) {
-          // 只导出非静音片段且时长大于1秒的
+        if (segment.duration > 1.0) {
+          // 只导出时长大于1秒的片段
           final outputPath = '$outputDir/segment_${segmentIndex++}.mp3';
 
           final command =

@@ -208,7 +208,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
                 ),
                 if (displaySegments != null && displaySegments.isNotEmpty)
                   Text(
-                    '${displaySegments.where((s) => !s.isSilence).length} 单元',
+                    '${displaySegments.length} 单元',  // 所有片段都是学习单元
                     style: TextStyle(
                       fontSize: 14.0,
                       color: AppColors.textSecondary,
@@ -269,16 +269,10 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   }
 
   Widget _buildSegmentList(List<AudioSegment> displaySegments) {
-    // 过滤掉静音片段，只显示非静音的学习单元
-    // 同时保存原始索引，以便正确定位缓存文件
-    final learningSegmentsWithIndex = <({AudioSegment segment, int originalIndex})>[];
-    for (int i = 0; i < displaySegments.length; i++) {
-      if (!displaySegments[i].isSilence) {
-        learningSegmentsWithIndex.add((segment: displaySegments[i], originalIndex: i));
-      }
-    }
+    // 所有片段都是非静音的学习单元，无需过滤
+    final learningSegments = displaySegments;
 
-    if (learningSegmentsWithIndex.isEmpty) {
+    if (learningSegments.isEmpty) {
       return const Text(
         '没有可用的学习单元',
         style: TextStyle(color: AppColors.textSecondary),
@@ -288,20 +282,19 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: learningSegmentsWithIndex.length,
-      itemBuilder: (context, listViewIndex) {
-        final item = learningSegmentsWithIndex[listViewIndex];
-        final segment = item.segment;
-        final originalIndex = item.originalIndex; // 原始数组中的真实索引
+      itemCount: learningSegments.length,
+      itemBuilder: (context, index) {
+        final segment = learningSegments[index];
         
-        final isPlaying = playingSegmentIndex == originalIndex;
-        final isPreparing = preparingSegmentIndex == originalIndex;
-        final isSegmenting = segmentingIndexes.contains(originalIndex);
-        final isLoopingThis = loopingSegmentIndex == originalIndex;
+        // 现在索引直接对应，无需区分 ListView 索引和原始索引
+        final isPlaying = playingSegmentIndex == index;
+        final isPreparing = preparingSegmentIndex == index;
+        final isSegmenting = segmentingIndexes.contains(index);
+        final isLoopingThis = loopingSegmentIndex == index;
         
         return _SegmentItem(
           segment: segment,
-          index: listViewIndex + 1, // 显示用的序号（1-based）
+          index: index + 1,  // 显示用的序号（1-based）
           isPlaying: isPlaying,
           isPreparing: isPreparing,
           isSegmenting: isSegmenting,
@@ -310,8 +303,8 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           currentLoop: isLoopingThis ? loopCount + 1 : 0,
           totalLoops: totalLoops,
           onTap: () => _openSegment(segment),
-          onPlayTap: () => _playSegment(segment, originalIndex), // 使用原始索引
-          onLoopTap: () => _startLoopPlay(segment, originalIndex), // 使用原始索引
+          onPlayTap: () => _playSegment(segment, index),
+          onLoopTap: () => _startLoopPlay(segment, index),
           onLoopTogglePause: _toggleLoopPause,
           onLoopStop: _stopLoopPlay,
         );
@@ -449,15 +442,14 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   }
 
   /// 播放单次循环迭代（内部使用）
-  /// 注意：index 是原始 segments 数组中的索引，不是 ListView 的索引
-  Future<void> _playLoopIteration(int originalIndex) async {
-    if (segments == null || originalIndex >= segments!.length) return;
+  Future<void> _playLoopIteration(int index) async {
+    if (segments == null || index >= segments!.length) return;
     
-    final segment = segments![originalIndex];
-    final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, originalIndex);
+    final segment = segments![index];
+    final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
     
     setState(() {
-      playingSegmentIndex = originalIndex;
+      playingSegmentIndex = index;
     });
     
     await AudioHelper.playFile(segmentPath);

@@ -109,18 +109,17 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
       if (mounted) {
         Navigator.pop(context);
 
-        // 更新资源状态
+        // 更新资源状态（所有片段都是非静音）
         if (segments.isNotEmpty) {
-          final nonSilenceSegments = segments.where((s) => !s.isSilence && s.duration > 1.0).toList();
           final segmentedResource = widget.resource.copyWith(
             segmentationStatus: SegmentationStatus.segmented,
-            segments: nonSilenceSegments,
+            segments: segments,
           );
           ref.read(resourceListNotifierProvider.notifier).updateResource(segmentedResource);
 
           // 显示结果
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('分割完成！找到 ${nonSilenceSegments.length} 个段落')),
+            SnackBar(content: Text('分割完成！找到 ${segments.length} 个段落')),
           );
         } else {
           final failedResource = widget.resource.copyWith(

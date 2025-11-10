@@ -161,8 +161,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
         // 保存分割信息
         await StorageService.instance.saveSegments(widget.resource.id, segments);
 
-        // 更新资源状态
-        final nonSilenceSegments = segments.where((s) => !s.isSilence && s.duration > 1.0).toList();
+        // 更新资源状态（所有片段都是非静音）
         final updatedResource = widget.resource.copyWith(
           segmentationStatus: SegmentationStatus.segmented,
         );
@@ -177,7 +176,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
             isSplitting = false;
           });
 
-          _showMessage('音频分割完成！已生成 ${nonSilenceSegments.length} 个学习单元');
+          _showMessage('音频分割完成！已生成 ${segments.length} 个学习单元');
 
           // Riverpod 会自动通知所有监听器刷新
         }

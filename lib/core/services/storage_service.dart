@@ -41,23 +41,19 @@ class StorageService {
     return '${_segmentsDir.path}/${resourceId}_segment_$segmentIndex.mp3';
   }
 
-  /// 保存分割信息
+  /// 保存分割信息（只保存非静音片段）
   Future<void> saveSegments(String resourceId, List<AudioSegment> segments) async {
     await initialize();
 
     final infoPath = _getSegmentInfoPath(resourceId);
-    
-    // 只保存非静音片段的索引映射
-    final nonSilenceSegments = segments.where((s) => !s.isSilence).toList();
     
     final data = {
       'resourceId': resourceId,
       'segments': segments.map((s) => {
         'start': s.start,
         'end': s.end,
-        'isSilence': s.isSilence,
       }).toList(),
-      'nonSilenceCount': nonSilenceSegments.length,
+      'segmentCount': segments.length,  // 所有片段都是非静音
       'timestamp': DateTime.now().toIso8601String(),
     };
 
@@ -83,7 +79,7 @@ class StorageService {
       return segmentsData.map((s) => AudioSegment(
         start: s['start'] as double,
         end: s['end'] as double,
-        isSilence: s['isSilence'] as bool,
+        // 旧版本可能有 isSilence 字段，新版本忽略即可
       )).toList();
     } catch (e) {
       print('加载分割信息失败: $e');

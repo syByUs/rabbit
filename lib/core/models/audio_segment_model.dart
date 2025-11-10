@@ -1,13 +1,12 @@
 /// 音频片段模型
+/// 只包含非静音的学习单元片段
 class AudioSegment {
   final double start; // 开始时间（秒）
   final double end; // 结束时间（秒）
-  final bool isSilence; // 是否为静音片段
 
   AudioSegment({
     required this.start,
     required this.end,
-    required this.isSilence,
   });
 
   /// 获取片段时长
@@ -42,9 +41,9 @@ class SegmentationTask {
     required this.status,
   });
 
-  /// 获取非静音片段的数量
+  /// 获取非静音片段的数量（现在所有片段都是非静音）
   int get nonSilenceSegmentCount {
-    return segments.where((s) => !s.isSilence).length;
+    return segments.length;
   }
 
   /// 获取总时长
