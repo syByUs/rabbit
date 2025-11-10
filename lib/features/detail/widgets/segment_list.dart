@@ -4,7 +4,9 @@ import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
 import '../../../core/services/storage_service.dart';
-import '../../../core/models/resource_model.dart';
+import '../../../core/services/audio_cache_service.dart';
+import '../../../core/services/audio_segmentation_service.dart';
+import '../../../core/utils/audio_helper.dart';
 import '../../learning/learning_screen.dart';
 import 'loading_indicator.dart';
 
@@ -25,6 +27,8 @@ class SegmentListWidget extends ConsumerStatefulWidget {
 class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   bool isLoading = false;
   List<AudioSegment>? segments;
+  int? playingSegmentIndex; // 当前正在播放的片段索引
+  Set<int> segmentingIndexes = {}; // 正在分割的片段索引集合
 
   @override
   void initState() {
@@ -181,13 +185,98 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
       itemCount: learningSegments.length,
       itemBuilder: (context, index) {
         final segment = learningSegments[index];
+        final isPlaying = playingSegmentIndex == index;
+        final isSegmenting = segmentingIndexes.contains(index);
+        
         return _SegmentItem(
           segment: segment,
           index: index + 1,
+          isPlaying: isPlaying,
+          isSegmenting: isSegmenting,
           onTap: () => _openSegment(segment),
+          onPlayTap: () => _playSegment(segment, index),
         );
       },
     );
+  }
+
+  /// 播放音频片段
+  Future<void> _playSegment(AudioSegment segment, int index) async {
+    try {
+      print('🎵 准备播放片段 $index: ${segment.timeRange}');
+
+      // 检查是否已有缓存的分割音频
+      final hasCache = await AudioCacheService.instance.hasSegment(widget.resource.id, index);
+      
+      if (hasCache) {
+        // 直接播放已缓存的音频
+        print('✅ 使用缓存的音频片段');
+        final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
+        
+        setState(() {
+          playingSegmentIndex = index;
+        });
+        
+        await AudioHelper.playFile(segmentPath);
+        print('🔊 开始播放缓存音频: $segmentPath');
+      } else {
+        // 需要先分割音频
+        print('⚙️ 音频片段未缓存，开始分割...');
+        
+        setState(() {
+          segmentingIndexes.add(index);
+        });
+
+        try {
+          // 1. 获取原始音频文件路径
+          final originalAudioPath = await AudioCacheService.instance.getAudioFilePath('audio/${widget.resource.id}.mp3');
+          print('📂 原始音频路径: $originalAudioPath');
+
+          // 2. 使用 FFmpeg 分割音频片段
+          final outputPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
+          await AudioSegmentationService.exportSingleSegment(
+            inputPath: originalAudioPath,
+            outputPath: outputPath,
+            segment: segment,
+          );
+
+          print('✅ 音频分割完成，开始播放');
+
+          // 3. 播放分割后的音频
+          setState(() {
+            segmentingIndexes.remove(index);
+            playingSegmentIndex = index;
+          });
+          
+          await AudioHelper.playFile(outputPath);
+          print('🔊 开始播放新分割的音频: $outputPath');
+        } catch (e) {
+          print('❌ 分割音频失败: $e');
+          setState(() {
+            segmentingIndexes.remove(index);
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('音频分割失败: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ 播放失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('播放失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _openSegment(AudioSegment segment) {
@@ -211,12 +300,18 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
 class _SegmentItem extends StatelessWidget {
   final AudioSegment segment;
   final int index;
+  final bool isPlaying;
+  final bool isSegmenting;
   final VoidCallback onTap;
+  final VoidCallback onPlayTap;
 
   const _SegmentItem({
     required this.segment,
     required this.index,
+    required this.isPlaying,
+    required this.isSegmenting,
     required this.onTap,
+    required this.onPlayTap,
   });
 
   @override
@@ -231,10 +326,13 @@ class _SegmentItem extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppColors.neutral0,
+              color: isPlaying ? AppColors.primary50 : AppColors.neutral0,
               borderRadius: BorderRadius.circular(AppRadius.md),
               boxShadow: AppShadows.small,
-              border: Border.all(color: AppColors.neutral200),
+              border: Border.all(
+                color: isPlaying ? AppColors.primary500 : AppColors.neutral200,
+                width: isPlaying ? 2.0 : 1.0,
+              ),
             ),
             child: Row(
               children: [
@@ -242,16 +340,16 @@ class _SegmentItem extends StatelessWidget {
                   width: 40.0,
                   height: 40.0,
                   decoration: BoxDecoration(
-                    color: AppColors.primary50,
+                    color: isPlaying ? AppColors.primary100 : AppColors.primary50,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Center(
                     child: Text(
                       '$index',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary500,
+                        color: isPlaying ? AppColors.primary700 : AppColors.primary500,
                       ),
                     ),
                   ),
@@ -263,10 +361,10 @@ class _SegmentItem extends StatelessWidget {
                     children: [
                       Text(
                         '片段 $index',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: isPlaying ? AppColors.primary700 : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs / 2),
@@ -288,18 +386,32 @@ class _SegmentItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: 32.0,
-                  height: 32.0,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary500,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      size: 16.0,
-                      color: Colors.white,
+                GestureDetector(
+                  onTap: isSegmenting ? null : onPlayTap,
+                  child: Container(
+                    width: 32.0,
+                    height: 32.0,
+                    decoration: BoxDecoration(
+                      color: isSegmenting 
+                          ? AppColors.neutral500
+                          : (isPlaying ? AppColors.primary600 : AppColors.primary500),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Center(
+                      child: isSegmenting
+                          ? const SizedBox(
+                              width: 16.0,
+                              height: 16.0,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              size: 16.0,
+                              color: Colors.white,
+                            ),
                     ),
                   ),
                 ),

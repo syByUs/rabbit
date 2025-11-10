@@ -9,6 +9,7 @@ class AudioCacheService {
   static AudioCacheService get instance => _instance ??= AudioCacheService._();
 
   late Directory _cacheDir;
+  late Directory _segmentsDir;
   bool _initialized = false;
 
   AudioCacheService._();
@@ -17,11 +18,18 @@ class AudioCacheService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    _cacheDir = Directory('${(await getApplicationDocumentsDirectory()).path}/audio_cache');
+    final appDir = await getApplicationDocumentsDirectory();
+    _cacheDir = Directory('${appDir.path}/audio_cache');
+    _segmentsDir = Directory('${appDir.path}/audio_segments');
 
     // 创建缓存目录
     if (!await _cacheDir.exists()) {
       await _cacheDir.create(recursive: true);
+    }
+
+    // 创建分割音频目录
+    if (!await _segmentsDir.exists()) {
+      await _segmentsDir.create(recursive: true);
     }
 
     _initialized = true;
@@ -84,4 +92,48 @@ class AudioCacheService {
     }
     return totalSize;
   }
+
+  /// 获取分割音频片段的缓存路径
+  /// 
+  /// [resourceId] 资源ID
+  /// [segmentIndex] 片段索引（从0开始）
+  /// @returns 分割音频文件的完整路径
+  String getSegmentPath(String resourceId, int segmentIndex) {
+    return '${_segmentsDir.path}/${resourceId}_segment_$segmentIndex.mp3';
+  }
+
+  /// 检查分割音频片段是否已缓存
+  /// 
+  /// [resourceId] 资源ID
+  /// [segmentIndex] 片段索引
+  /// @returns 如果文件存在返回true，否则返回false
+  Future<bool> hasSegment(String resourceId, int segmentIndex) async {
+    await initialize();
+    final segmentPath = getSegmentPath(resourceId, segmentIndex);
+    return await File(segmentPath).exists();
+  }
+
+  /// 清理指定资源的所有分割音频片段
+  /// 
+  /// [resourceId] 资源ID
+  Future<void> clearSegments(String resourceId) async {
+    await initialize();
+
+    var index = 0;
+    while (true) {
+      final segmentPath = getSegmentPath(resourceId, index);
+      final segmentFile = File(segmentPath);
+
+      if (await segmentFile.exists()) {
+        await segmentFile.delete();
+        index++;
+      } else {
+        break;
+      }
+    }
+    print('🗑️ 已清理资源 $resourceId 的 $index 个音频片段');
+  }
+
+  /// 获取分割音频目录路径
+  String get segmentsDirectory => _segmentsDir.path;
 }

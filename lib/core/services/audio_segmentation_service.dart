@@ -233,4 +233,46 @@ class AudioSegmentationService {
 
     return outputPaths;
   }
+
+  /// 导出单个音频片段
+  ///
+  /// [inputPath] 输入音频文件路径
+  /// [outputPath] 输出文件路径
+  /// [segment] 要导出的音频片段
+  /// @returns 导出成功返回输出路径，失败抛出异常
+  static Future<String> exportSingleSegment({
+    required String inputPath,
+    required String outputPath,
+    required AudioSegment segment,
+  }) async {
+    try {
+      print('🎵 开始导出音频片段: ${segment.timeRange}');
+      print('   输入: $inputPath');
+      print('   输出: $outputPath');
+
+      // 使用 FFmpeg 切割音频
+      // -ss: 开始时间
+      // -t: 持续时间
+      // -acodec copy: 直接复制音频流，不重新编码（速度快）
+      final command =
+          '-i "$inputPath" -ss ${segment.start} -t ${segment.duration} -acodec copy "$outputPath"';
+
+      print('   FFmpeg命令: $command');
+
+      final session = await FFmpegKit.execute(command);
+      final returnCode = await session.getReturnCode();
+
+      if (ReturnCode.isSuccess(returnCode)) {
+        print('✅ 音频片段导出成功: $outputPath');
+        return outputPath;
+      } else {
+        final failStackTrace = await session.getFailStackTrace();
+        final output = await session.getOutput();
+        throw Exception('FFmpeg 执行失败: ${failStackTrace ?? output}');
+      }
+    } catch (e) {
+      print('❌ 音频片段导出失败: $e');
+      throw Exception('导出音频片段失败: $e');
+    }
+  }
 }

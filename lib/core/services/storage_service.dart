@@ -46,6 +46,10 @@ class StorageService {
     await initialize();
 
     final infoPath = _getSegmentInfoPath(resourceId);
+    
+    // 只保存非静音片段的索引映射
+    final nonSilenceSegments = segments.where((s) => !s.isSilence).toList();
+    
     final data = {
       'resourceId': resourceId,
       'segments': segments.map((s) => {
@@ -53,6 +57,7 @@ class StorageService {
         'end': s.end,
         'isSilence': s.isSilence,
       }).toList(),
+      'nonSilenceCount': nonSilenceSegments.length,
       'timestamp': DateTime.now().toIso8601String(),
     };
 
@@ -125,5 +130,38 @@ class StorageService {
     // 使用 FFmpeg 将原始音频按时间范围切片
     final outputPath = _getSegmentAudioPath(resourceId, segmentIndex);
     return outputPath;
+  }
+
+  /// 检查分割音频文件是否存在
+  /// 
+  /// [resourceId] 资源ID
+  /// [segmentIndex] 非静音片段的索引（从0开始）
+  Future<bool> hasSegmentAudio(String resourceId, int segmentIndex) async {
+    await initialize();
+    final audioPath = _getSegmentAudioPath(resourceId, segmentIndex);
+    return await File(audioPath).exists();
+  }
+
+  /// 获取所有已导出的分割音频文件路径
+  /// 
+  /// [resourceId] 资源ID
+  /// @returns 所有存在的分割音频文件路径列表
+  Future<List<String>> getExportedSegmentPaths(String resourceId) async {
+    await initialize();
+    
+    final paths = <String>[];
+    var index = 0;
+    
+    while (true) {
+      final audioPath = _getSegmentAudioPath(resourceId, index);
+      if (await File(audioPath).exists()) {
+        paths.add(audioPath);
+        index++;
+      } else {
+        break;
+      }
+    }
+    
+    return paths;
   }
 }
