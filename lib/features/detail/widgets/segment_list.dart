@@ -121,10 +121,35 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 监听 Riverpod 状态变化，当分割完成时自动使用最新的 segments
+    // 监听 Riverpod 状态变化 - ref.listen 必须在 build 方法中调用
+    ref.listen(resourceSegmentationProvider(widget.resource.id), (previous, next) {
+      print('🔄 分割状态变化: segments=${next.segments?.length}, isSegmenting=${next.isSegmenting}');
+      
+      // 如果状态被清空，同步清空本地状态
+      if (next.segments == null && previous?.segments != null) {
+        print('🗑️ 检测到分割数据被清空，清理本地状态');
+        if (mounted) {
+          setState(() {
+            segments = null;
+          });
+        }
+      }
+      
+      // 如果有新的分割数据，同步到本地状态
+      if (next.segments != null && next.segments != segments) {
+        print('✅ 检测到新的分割数据，更新本地状态');
+        if (mounted) {
+          setState(() {
+            segments = next.segments;
+          });
+        }
+      }
+    });
+
+    // 获取当前状态
     final segmentationState = ref.watch(resourceSegmentationProvider(widget.resource.id));
     
-    // 如果 Riverpod 中有 segments 且不在加载中，优先使用 Riverpod 的数据
+    // 优先使用 Riverpod 的数据，如果没有则使用本地加载的 segments
     final displaySegments = segmentationState.segments ?? segments;
 
     return Container(

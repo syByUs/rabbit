@@ -82,6 +82,9 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
     try {
       await StorageService.instance.initialize();
       await StorageService.instance.deleteSegments(widget.resource.id);
+      
+      // 同时清理缓存的分割音频文件
+      await AudioCacheService.instance.clearSegments(widget.resource.id);
 
       // 更新资源状态
       final updatedResource = widget.resource.copyWith(
@@ -90,6 +93,9 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
       if (mounted) {
         ref.read(resourceListNotifierProvider.notifier).updateResource(updatedResource);
+        
+        // 清空 Riverpod 中的分割状态
+        ref.read(resourceSegmentationProvider(widget.resource.id).notifier).clearSegments();
 
         setState(() {
           isSplitting = false;
