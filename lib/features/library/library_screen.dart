@@ -12,9 +12,9 @@ class LibraryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resources = ref.watch(resourceListProvider);
-    final searchQuery = ref.watch(searchQueryProvider);
-    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final resources = ref.watch(resourceListNotifierProvider);
+    final searchQuery = ref.watch(searchQueryNotifierProvider);
+    final selectedCategory = ref.watch(selectedCategoryNotifierProvider);
 
     // 筛选资源
     final filteredResources = resources.where((resource) {

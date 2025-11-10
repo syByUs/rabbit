@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/audio_segment_model.dart';
 import '../models/resource_model.dart';
 
-part 'app_state_provider.g.dart';
-
 /// ============================================
-/// 应用状态管理（使用 @riverpod 注解）
+/// 应用状态管理
 /// ============================================
 
 /// PRO用户状态
@@ -23,8 +20,7 @@ class UserState {
 }
 
 /// 应用状态Notifier
-@riverpod
-class UserStateNotifier extends _$UserStateNotifier {
+class UserStateNotifier extends Notifier<UserState> {
   @override
   UserState build() {
     return UserState(isProUser: false);
@@ -35,18 +31,7 @@ class UserStateNotifier extends _$UserStateNotifier {
   }
 }
 
-/// PRO用户状态
-@riverpod
-bool isProUser(IsProUserRef ref) {
-  // todo release环境下需要将代码注释
-  return true;
-  return ref.watch(userStateNotifierProvider).isProUser;
-}
-
-/// ============================================
 /// 音频播放状态
-/// ============================================
-
 class AudioPlaybackState {
   final String? currentResourceId;
   final bool isPlaying;
@@ -80,8 +65,7 @@ class AudioPlaybackState {
 }
 
 /// 音频播放状态管理
-@riverpod
-class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
+class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   @override
   AudioPlaybackState build() {
     return AudioPlaybackState(isPlaying: false);
@@ -107,13 +91,8 @@ class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
   }
 }
 
-/// ============================================
 /// 资源列表状态
-/// ============================================
-
-/// 资源列表管理
-@riverpod
-class ResourceListNotifier extends _$ResourceListNotifier {
+class ResourceListNotifier extends Notifier<List<AudioResource>> {
   @override
   List<AudioResource> build() {
     return sampleResources;
@@ -130,13 +109,8 @@ class ResourceListNotifier extends _$ResourceListNotifier {
   }
 }
 
-/// ============================================
-/// 搜索和筛选状态
-/// ============================================
-
 /// 搜索查询状态
-@riverpod
-class SearchQueryNotifier extends _$SearchQueryNotifier {
+class SearchQueryNotifier extends Notifier<String> {
   @override
   String build() {
     return '';
@@ -152,8 +126,7 @@ class SearchQueryNotifier extends _$SearchQueryNotifier {
 }
 
 /// 选中的分类
-@riverpod
-class SelectedCategoryNotifier extends _$SelectedCategoryNotifier {
+class SelectedCategoryNotifier extends Notifier<String> {
   @override
   String build() {
     return 'all';
@@ -165,8 +138,7 @@ class SelectedCategoryNotifier extends _$SelectedCategoryNotifier {
 }
 
 /// 当前选中的音频
-@riverpod
-class SelectedResourceNotifier extends _$SelectedResourceNotifier {
+class SelectedResourceNotifier extends Notifier<AudioResource?> {
   @override
   AudioResource? build() {
     return null;
@@ -182,7 +154,48 @@ class SelectedResourceNotifier extends _$SelectedResourceNotifier {
 }
 
 /// ============================================
-/// 分割状态管理 (保持原始实现)
+/// Providers
+/// ============================================
+
+/// 用户状态Provider
+final userStateProvider = NotifierProvider<UserStateNotifier, UserState>(() {
+  return UserStateNotifier();
+});
+
+/// PRO用户状态
+final isProUserProvider = Provider<bool>((ref) {
+  // todo release环境下需要将代码注释
+  return true;
+  return ref.watch(userStateProvider).isProUser;
+});
+
+/// 音频播放状态Provider
+final audioPlaybackProvider = NotifierProvider<AudioPlaybackNotifier, AudioPlaybackState>(() {
+  return AudioPlaybackNotifier();
+});
+
+/// 资源列表Provider
+final resourceListProvider = NotifierProvider<ResourceListNotifier, List<AudioResource>>(() {
+  return ResourceListNotifier();
+});
+
+/// 搜索查询Provider
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
+  return SearchQueryNotifier();
+});
+
+/// 选中分类Provider
+final selectedCategoryProvider = NotifierProvider<SelectedCategoryNotifier, String>(() {
+  return SelectedCategoryNotifier();
+});
+
+/// 当前选中资源Provider
+final selectedResourceProvider = NotifierProvider<SelectedResourceNotifier, AudioResource?>(() {
+  return SelectedResourceNotifier();
+});
+
+/// ============================================
+/// 分割状态管理
 /// ============================================
 
 /// 音频分割状态
@@ -210,7 +223,7 @@ class SegmentationState {
   }
 }
 
-/// 音频分割状态管理 (暂时保持 StateNotifier，因为 Family Notifier 需要 special handling)
+/// 音频分割状态管理
 class SegmentationNotifier extends StateNotifier<SegmentationState> {
   SegmentationNotifier() : super(SegmentationState(isSegmenting: false));
 
@@ -243,11 +256,10 @@ final resourceSegmentationProvider = StateNotifierProvider.family<SegmentationNo
 });
 
 /// 当前资源分割状态Provider
-@riverpod
-SegmentationState currentResourceSegmentation(CurrentResourceSegmentationRef ref) {
-  final resource = ref.watch(selectedResourceNotifierProvider);
+final currentResourceSegmentationProvider = Provider<SegmentationState>((ref) {
+  final resource = ref.watch(selectedResourceProvider);
   if (resource == null) {
     return SegmentationState(isSegmenting: false);
   }
   return ref.watch(resourceSegmentationProvider(resource.id));
-}
+});

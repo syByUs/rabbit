@@ -18,7 +18,7 @@ class AudioHelper {
     _player.onPlayerComplete.listen((_) {
       // Reset playback state when audio completes
       if (_providerContainer != null) {
-        _providerContainer!.read(audioPlaybackProvider.notifier).stop();
+        _providerContainer!.read(audioPlaybackNotifierProvider.notifier).stop();
       }
     });
   }

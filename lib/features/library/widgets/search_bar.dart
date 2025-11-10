@@ -17,7 +17,7 @@ class SearchBarWidget extends ConsumerWidget {
       ),
       child: TextField(
         onChanged: (value) {
-          ref.read(searchQueryProvider.notifier).state = value;
+          ref.read(searchQueryNotifierProvider.notifier).state = value;
         },
         decoration: InputDecoration(
           hintText: '搜索音频资源...',

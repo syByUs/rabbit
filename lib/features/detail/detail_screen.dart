@@ -29,7 +29,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     // 延迟到 Widget 构建完成后再执行
     Future.delayed(Duration.zero, () {
       if (mounted) {
-        ref.read(selectedResourceProvider.notifier).select(widget.resource);
+        ref.read(selectedResourceNotifierProvider.notifier).select(widget.resource);
       }
     });
   }

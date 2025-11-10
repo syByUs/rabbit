@@ -87,7 +87,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
       );
 
       if (mounted) {
-        ref.read(resourceListProvider.notifier).updateResource(updatedResource);
+        ref.read(resourceListNotifierProvider.notifier).updateResource(updatedResource);
 
         setState(() {
           isSplitting = false;
@@ -158,7 +158,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
         );
 
         if (mounted) {
-          ref.read(resourceListProvider.notifier).updateResource(updatedResource);
+          ref.read(resourceListNotifierProvider.notifier).updateResource(updatedResource);
 
           // 更新分割状态 - 这里会触发SegmentListWidget的UI刷新
           ref.read(resourceSegmentationProvider(widget.resource.id).notifier).completeSegmenting(segments);

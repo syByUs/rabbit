@@ -108,6 +108,14 @@ class AudioResource {
 // 示例数据
 List<AudioResource> sampleResources = [
   AudioResource(
+    id: '音乐1',
+    title: 'voice_001.mp3',
+    duration: '02:42',
+    progress: 0,
+    status: LearningStatus.notStarted,
+    category: ResourceCategory.custom,
+  ),
+  AudioResource(
     id: 'getvoice1',
     title: 'getvoice1.mp3',
     duration: '03:15',
@@ -122,33 +130,7 @@ List<AudioResource> sampleResources = [
     progress: 0,
     status: LearningStatus.notStarted,
     category: ResourceCategory.custom,
-  ),
-  AudioResource(
-    id: '1',
-    title: 'N1听力真题.mp3',
-    duration: '45:30',
-    progress: 30,
-    status: LearningStatus.learning,
-    category: ResourceCategory.jlpt,
-    lastStudied: DateTime.now().subtract(const Duration(days: 1)),
-  ),
-  AudioResource(
-    id: '2',
-    title: 'NHK新闻-20251107.mp3',
-    duration: '12:15',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.news,
-  ),
-  AudioResource(
-    id: '3',
-    title: '大家的日语-第30课.mp3',
-    duration: '08:42',
-    progress: 85,
-    status: LearningStatus.mastered,
-    category: ResourceCategory.dialogue,
-    lastStudied: DateTime.now().subtract(const Duration(hours: 3)),
-  ),
+  )
 ];
 
 /// ============================================

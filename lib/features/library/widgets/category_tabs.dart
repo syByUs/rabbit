@@ -8,7 +8,7 @@ class CategoryTabsWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final selectedCategory = ref.watch(selectedCategoryNotifierProvider);
 
     return Container(
       height: 48.0,
@@ -26,7 +26,7 @@ class CategoryTabsWidget extends ConsumerWidget {
               title: category.title,
               isActive: isActive,
               onTap: () {
-                ref.read(selectedCategoryProvider.notifier).state = category.id;
+                ref.read(selectedCategoryNotifierProvider.notifier).state = category.id;
               },
             ),
           );

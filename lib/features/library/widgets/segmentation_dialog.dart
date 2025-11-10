@@ -93,11 +93,11 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
 
     try {
       // 更新资源状态为处理中
-      final resources = ref.read(resourceListProvider);
+      final resources = ref.read(resourceListNotifierProvider);
       final updatedResource = widget.resource.copyWith(
         segmentationStatus: SegmentationStatus.segmenting,
       );
-      ref.read(resourceListProvider.notifier).updateResource(updatedResource);
+      ref.read(resourceListNotifierProvider.notifier).updateResource(updatedResource);
 
       // 执行分割
       final segments = await AudioSegmentationService.detectSilencePoints(
@@ -116,7 +116,7 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
             segmentationStatus: SegmentationStatus.segmented,
             segments: nonSilenceSegments,
           );
-          ref.read(resourceListProvider.notifier).updateResource(segmentedResource);
+          ref.read(resourceListNotifierProvider.notifier).updateResource(segmentedResource);
 
           // 显示结果
           ScaffoldMessenger.of(context).showSnackBar(
@@ -126,7 +126,7 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
           final failedResource = widget.resource.copyWith(
             segmentationStatus: SegmentationStatus.notSegmented,
           );
-          ref.read(resourceListProvider.notifier).updateResource(failedResource);
+          ref.read(resourceListNotifierProvider.notifier).updateResource(failedResource);
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('未检测到适合的分割点')),
@@ -143,7 +143,7 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
       final failedResource = widget.resource.copyWith(
         segmentationStatus: SegmentationStatus.failed,
       );
-      ref.read(resourceListProvider.notifier).updateResource(failedResource);
+      ref.read(resourceListNotifierProvider.notifier).updateResource(failedResource);
     }
   }
 }

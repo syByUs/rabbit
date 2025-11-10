@@ -17,13 +17,13 @@ class ResourceCard extends ConsumerWidget {
   });
 
   void _togglePlayback(WidgetRef ref) {
-    final playbackState = ref.read(audioPlaybackProvider);
+    final playbackState = ref.read(audioPlaybackNotifierProvider);
     final isCurrent = playbackState.isCurrentResource(resource.id);
     final isPlaying = isCurrent && playbackState.isPlaying;
 
     if (isPlaying) {
       AudioHelper.pause();
-      ref.read(audioPlaybackProvider.notifier).pause();
+      ref.read(audioPlaybackNotifierProvider.notifier).pause();
     } else {
       if (playbackState.currentResourceId != null) {
         AudioHelper.stop();
@@ -31,7 +31,7 @@ class ResourceCard extends ConsumerWidget {
 
       String assetPath = 'audio/${resource.title}';
       AudioHelper.playAsset(assetPath);
-      ref.read(audioPlaybackProvider.notifier).startPlaying(resource.id);
+      ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
     }
   }
 
@@ -44,7 +44,7 @@ class ResourceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playbackState = ref.watch(audioPlaybackProvider);
+    final playbackState = ref.watch(audioPlaybackNotifierProvider);
     final isCurrent = playbackState.isCurrentResource(resource.id);
     final isPlaying = isCurrent && playbackState.isPlaying;
 
