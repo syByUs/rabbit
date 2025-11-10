@@ -61,7 +61,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
 
             const SizedBox(height: AppSpacing.xl),
 
-            // 学习单元列表 - 直接使用，无需 ValueListenableBuilder
+            // 学习单元列表
             SegmentListWidget(
               resource: widget.resource,
               key: ValueKey(segmentationState.segments?.length ?? 0), // 使用 key 强制重建

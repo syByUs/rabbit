@@ -10,6 +10,7 @@ import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/audio_cache_service.dart';
 import 'loading_indicator.dart';
+import 'advanced_settings_dialog.dart';
 
 class SplitSectionWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
@@ -25,6 +26,8 @@ class SplitSectionWidget extends ConsumerStatefulWidget {
 
 class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
   bool isSplitting = false;
+  double silenceDuration = 0.6; // 默认静音时长
+  double silenceThreshold = -40.0; // 默认静音分贝阈值
 
   @override
   void initState() {
@@ -144,12 +147,12 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
       print('音频文件已缓存到: $audioPath');
       print('文件是否存在: ${File(audioPath).existsSync()}');
 
-      // 执行分割
-      print('执行 FFmpeg 静音检测...');
+      // 执行分割（使用用户设置的参数）
+      print('执行 FFmpeg 静音检测... (时长: ${silenceDuration}s, 阈值: ${silenceThreshold}dB)');
       final segments = await AudioSegmentationService.detectSilencePoints(
         audioPath: audioPath,
-        silenceDuration: 0.6,
-        silenceThreshold: -40.0,
+        silenceDuration: silenceDuration,
+        silenceThreshold: silenceThreshold,
       );
 
       print('分割完成，检测到 ${segments.length} 个片段');
@@ -203,6 +206,33 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
     );
   }
 
+  /// 显示高级设置对话框
+  Future<void> _showAdvancedSettings() async {
+    final isPro = ref.read(isProUserProvider);
+    
+    if (!isPro) {
+      _showPaywall();
+      return;
+    }
+
+    final result = await showDialog<Map<String, double>>(
+      context: context,
+      builder: (context) => AdvancedSettingsDialog(
+        initialSilenceDuration: silenceDuration,
+        initialSilenceThreshold: silenceThreshold,
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        silenceDuration = result['silenceDuration']!;
+        silenceThreshold = result['silenceThreshold']!;
+      });
+      
+      _showMessage('已更新高级设置：时长 ${silenceDuration.toStringAsFixed(1)}秒，阈值 ${silenceThreshold.toInt()}dB');
+    }
+  }
+
   void _showMessage(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -246,12 +276,37 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
               ),
               child: const Text('静音分割'),
             ),
+          
+          // 显示当前参数（如果不是默认值）
+          if (silenceDuration != 0.6 || silenceThreshold != -40.0) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary50,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: AppColors.primary100),
+              ),
+              child: Text(
+                '⚙️ 当前参数：${silenceDuration.toStringAsFixed(1)}秒 / ${silenceThreshold.toInt()}dB',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  color: AppColors.primary700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+          
           const SizedBox(height: AppSpacing.sm),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               GestureDetector(
-                onTap: _showPaywall,
+                onTap: _showAdvancedSettings,
                 child: Text(
                   '高级设置 💎',
                   style: TextStyle(
