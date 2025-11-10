@@ -33,6 +33,13 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   Set<int> segmentingIndexes = {}; // 正在分割的片段索引集合
   StreamSubscription? _playerCompleteSubscription;
   StreamSubscription? _playerStateSubscription;
+  
+  // 循环播放相关状态
+  int? loopingSegmentIndex; // 正在循环播放的片段索引
+  int loopCount = 0; // 当前循环播放的次数
+  int totalLoops = 3; // 总循环次数
+  bool isLooping = false; // 是否正在循环播放中
+  bool loopPaused = false; // 循环是否暂停
 
   @override
   void initState() {
@@ -53,12 +60,40 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   /// 设置音频监听器
   void _setupAudioListeners() {
     // 监听播放完成事件
-    _playerCompleteSubscription = AudioHelper.player.onPlayerComplete.listen((_) {
+    _playerCompleteSubscription = AudioHelper.player.onPlayerComplete.listen((_) async {
       print('🎵 音频播放完成');
+      
       if (mounted) {
-        setState(() {
-          playingSegmentIndex = null;
-        });
+        // 检查是否在循环播放中
+        if (isLooping && !loopPaused) {
+          loopCount++;
+          print('🔁 循环播放：第 $loopCount/$totalLoops 次完成');
+          
+          if (loopCount < totalLoops) {
+            // 继续下一次循环
+            print('⏳ 等待 1000ms 后继续循环...');
+            await Future.delayed(const Duration(milliseconds: 1000));
+            
+            if (mounted && isLooping && !loopPaused && loopingSegmentIndex != null) {
+              // 重新播放
+              _playLoopIteration(loopingSegmentIndex!);
+            }
+          } else {
+            // 循环完成
+            print('✅ 循环播放完成！');
+            setState(() {
+              isLooping = false;
+              loopingSegmentIndex = null;
+              loopCount = 0;
+              playingSegmentIndex = null;
+            });
+          }
+        } else {
+          // 普通播放完成
+          setState(() {
+            playingSegmentIndex = null;
+          });
+        }
       }
     });
 
@@ -66,8 +101,8 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     _playerStateSubscription = AudioHelper.player.onPlayerStateChanged.listen((state) {
       print('🎵 音频状态变化: $state');
       if (mounted) {
-        // 如果状态变为停止或完成，清除播放索引
-        if (state == PlayerState.stopped || state == PlayerState.completed) {
+        // 如果状态变为停止，清除播放索引（但保留循环状态）
+        if (state == PlayerState.stopped && !isLooping) {
           setState(() {
             playingSegmentIndex = null;
           });
@@ -253,6 +288,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
         final isPlaying = playingSegmentIndex == index;
         final isPreparing = preparingSegmentIndex == index;
         final isSegmenting = segmentingIndexes.contains(index);
+        final isLoopingThis = loopingSegmentIndex == index;
         
         return _SegmentItem(
           segment: segment,
@@ -260,8 +296,15 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           isPlaying: isPlaying,
           isPreparing: isPreparing,
           isSegmenting: isSegmenting,
+          isLooping: isLoopingThis,
+          loopPaused: loopPaused,
+          currentLoop: isLoopingThis ? loopCount + 1 : 0,
+          totalLoops: totalLoops,
           onTap: () => _openSegment(segment),
           onPlayTap: () => _playSegment(segment, index),
+          onLoopTap: () => _startLoopPlay(segment, index),
+          onLoopTogglePause: _toggleLoopPause,
+          onLoopStop: _stopLoopPlay,
         );
       },
     );
@@ -396,6 +439,133 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     }
   }
 
+  /// 播放单次循环迭代（内部使用）
+  Future<void> _playLoopIteration(int index) async {
+    final learningSegments = segments!.where((s) => !s.isSilence).toList();
+    if (index >= learningSegments.length) return;
+    
+    final segment = learningSegments[index];
+    final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
+    
+    setState(() {
+      playingSegmentIndex = index;
+    });
+    
+    await AudioHelper.playFile(segmentPath);
+    print('🔊 循环播放中 ($loopCount/$totalLoops): $segmentPath');
+  }
+
+  /// 开始循环播放
+  Future<void> _startLoopPlay(AudioSegment segment, int index) async {
+    try {
+      // 先确保音频已分割并缓存
+      final hasCache = await AudioCacheService.instance.hasSegment(widget.resource.id, index);
+      
+      if (!hasCache) {
+        // 需要先分割音频
+        print('⚙️ 循环播放前先分割音频...');
+        setState(() {
+          segmentingIndexes.add(index);
+        });
+
+        try {
+          final originalAudioPath = await AudioCacheService.instance.getAudioFilePath('audio/${widget.resource.id}.mp3');
+          final outputPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
+          await AudioSegmentationService.exportSingleSegment(
+            inputPath: originalAudioPath,
+            outputPath: outputPath,
+            segment: segment,
+          );
+          
+          setState(() {
+            segmentingIndexes.remove(index);
+          });
+        } catch (e) {
+          print('❌ 分割音频失败: $e');
+          setState(() {
+            segmentingIndexes.remove(index);
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('音频分割失败，无法循环播放: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // 显示循环次数设置对话框
+      final selectedLoops = await showDialog<int>(
+        context: context,
+        builder: (context) => _LoopCountDialog(initialCount: totalLoops),
+      );
+
+      if (selectedLoops == null) return;
+
+      // 开始循环播放
+      setState(() {
+        totalLoops = selectedLoops;
+        loopCount = 0;
+        isLooping = true;
+        loopPaused = false;
+        loopingSegmentIndex = index;
+      });
+
+      print('🔁 开始循环播放：共 $totalLoops 次');
+      
+      // 延迟 500ms 给用户准备时间
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted && isLooping && !loopPaused) {
+        _playLoopIteration(index);
+      }
+    } catch (e) {
+      print('❌ 循环播放失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('循环播放失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 暂停/继续循环播放
+  void _toggleLoopPause() {
+    if (!isLooping) return;
+    
+    setState(() {
+      loopPaused = !loopPaused;
+    });
+    
+    if (loopPaused) {
+      print('⏸️ 暂停循环播放');
+      AudioHelper.pause();
+    } else {
+      print('▶️ 继续循环播放');
+      AudioHelper.resume();
+    }
+  }
+
+  /// 停止循环播放
+  void _stopLoopPlay() {
+    print('⏹️ 停止循环播放');
+    setState(() {
+      isLooping = false;
+      loopPaused = false;
+      loopingSegmentIndex = null;
+      loopCount = 0;
+      playingSegmentIndex = null;
+    });
+    AudioHelper.stop();
+  }
+
   void _openSegment(AudioSegment segment) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -420,8 +590,15 @@ class _SegmentItem extends StatelessWidget {
   final bool isPlaying;
   final bool isPreparing;
   final bool isSegmenting;
+  final bool isLooping;
+  final bool loopPaused;
+  final int currentLoop;
+  final int totalLoops;
   final VoidCallback onTap;
   final VoidCallback onPlayTap;
+  final VoidCallback onLoopTap;
+  final VoidCallback onLoopTogglePause;
+  final VoidCallback onLoopStop;
 
   const _SegmentItem({
     required this.segment,
@@ -429,8 +606,15 @@ class _SegmentItem extends StatelessWidget {
     required this.isPlaying,
     required this.isPreparing,
     required this.isSegmenting,
+    required this.isLooping,
+    required this.loopPaused,
+    required this.currentLoop,
+    required this.totalLoops,
     required this.onTap,
     required this.onPlayTap,
+    required this.onLoopTap,
+    required this.onLoopTogglePause,
+    required this.onLoopStop,
   });
 
   @override
@@ -551,40 +735,253 @@ class _SegmentItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                GestureDetector(
-                  onTap: (isSegmenting || isPreparing) ? null : onPlayTap,
-                  child: Container(
-                    width: 32.0,
-                    height: 32.0,
-                    decoration: BoxDecoration(
-                      color: isSegmenting 
-                          ? AppColors.neutral400
-                          : isPreparing
-                              ? AppColors.warning500
-                              : (isPlaying ? AppColors.primary600 : AppColors.primary500),
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                    child: Center(
-                      child: (isSegmenting || isPreparing)
-                          ? const SizedBox(
-                              width: 16.0,
-                              height: 16.0,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.0,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Icon(
-                              isPlaying ? Icons.pause : Icons.play_arrow,
-                              size: 16.0,
-                              color: Colors.white,
-                            ),
-                    ),
-                  ),
+                // 按钮组：循环播放按钮 + 普通播放按钮
+                Row(
+                  children: [
+                    // 循环播放按钮
+                    if (isLooping) ...[
+                      // 循环播放中的控制按钮
+                      GestureDetector(
+                        onTap: onLoopTogglePause,
+                        child: Container(
+                          width: 32.0,
+                          height: 32.0,
+                          decoration: BoxDecoration(
+                            color: loopPaused ? AppColors.warning500 : AppColors.success500,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Icon(
+                            loopPaused ? Icons.play_arrow : Icons.pause,
+                            size: 16.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      // 停止循环按钮
+                      GestureDetector(
+                        onTap: onLoopStop,
+                        child: Container(
+                          width: 32.0,
+                          height: 32.0,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: const Icon(
+                            Icons.stop,
+                            size: 16.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      // 循环次数显示
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0,
+                          vertical: 4.0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success50,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          border: Border.all(color: AppColors.success500),
+                        ),
+                        child: Text(
+                          '$currentLoop/$totalLoops',
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success500,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      // 循环播放按钮
+                      GestureDetector(
+                        onTap: (isSegmenting || isPreparing) ? null : onLoopTap,
+                        child: Container(
+                          width: 32.0,
+                          height: 32.0,
+                          decoration: BoxDecoration(
+                            color: (isSegmenting || isPreparing)
+                                ? AppColors.neutral400
+                                : AppColors.secondary500,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: const Icon(
+                            Icons.repeat,
+                            size: 16.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16.0),
+                      // 普通播放按钮
+                      GestureDetector(
+                        onTap: (isSegmenting || isPreparing) ? null : onPlayTap,
+                        child: Container(
+                          width: 32.0,
+                          height: 32.0,
+                          decoration: BoxDecoration(
+                            color: isSegmenting 
+                                ? AppColors.neutral400
+                                : isPreparing
+                                    ? AppColors.warning500
+                                    : (isPlaying ? AppColors.primary600 : AppColors.primary500),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Center(
+                            child: (isSegmenting || isPreparing)
+                                ? const SizedBox(
+                                    width: 16.0,
+                                    height: 16.0,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.0,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Icon(
+                                    isPlaying ? Icons.pause : Icons.play_arrow,
+                                    size: 16.0,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// 循环次数设置对话框
+class _LoopCountDialog extends StatefulWidget {
+  final int initialCount;
+
+  const _LoopCountDialog({required this.initialCount});
+
+  @override
+  State<_LoopCountDialog> createState() => _LoopCountDialogState();
+}
+
+class _LoopCountDialogState extends State<_LoopCountDialog> {
+  late int loopCount;
+
+  @override
+  void initState() {
+    super.initState();
+    loopCount = widget.initialCount;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        width: 300,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.repeat, color: AppColors.secondary500, size: 24.0),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '循环播放设置',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              '选择循环播放次数',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // 循环次数选择器
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: loopCount > 1
+                      ? () => setState(() => loopCount--)
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline),
+                  color: AppColors.secondary500,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary50,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.secondary500),
+                  ),
+                  child: Text(
+                    '$loopCount 次',
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.secondary500,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: loopCount < 10
+                      ? () => setState(() => loopCount++)
+                      : null,
+                  icon: const Icon(Icons.add_circle_outline),
+                  color: AppColors.secondary500,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '每次播放间隔 1000 毫秒',
+              style: TextStyle(
+                fontSize: 12.0,
+                color: AppColors.textTertiary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消'),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, loopCount),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary500,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('开始循环'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

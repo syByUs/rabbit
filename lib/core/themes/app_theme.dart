@@ -14,9 +14,13 @@ class AppColors {
   static const primary700 = Color(0xFF1E3A8A);
 
   // 辅助色
+  static const secondary50 = Color(0xFFFDF2F8);
   static const secondary500 = Color(0xFFF472B6);
   static const secondary600 = Color(0xFFEC4899);
   static const accent500 = Color(0xFF60A5FA);
+  
+  // 成功色系（绿色）
+  static const success50 = Color(0xFFECFDF5);
   static const success500 = Color(0xFF10B981);
   
   // 警告色系（黄色）
