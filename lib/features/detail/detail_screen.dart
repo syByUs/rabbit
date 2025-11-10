@@ -4,7 +4,6 @@ import '../../core/themes/app_theme.dart';
 import '../../core/models/resource_model.dart';
 import '../../core/providers/app_state_provider.dart';
 import '../learning/learning_screen.dart';
-import 'widgets/audio_player.dart';
 import 'widgets/segment_list.dart';
 import 'widgets/split_section.dart';
 
