@@ -21,8 +21,6 @@ class DetailScreen extends ConsumerStatefulWidget {
 }
 
 class _DetailScreenState extends ConsumerState<DetailScreen> {
-  final ValueNotifier<bool> _reloadNotifier = ValueNotifier(false);
-
   @override
   void initState() {
     super.initState();
@@ -36,6 +34,9 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听分割状态变化，当分割完成时自动刷新列表
+    final segmentationState = ref.watch(resourceSegmentationProvider(widget.resource.id));
+
     return Scaffold(
       backgroundColor: AppColors.neutral50,
       appBar: AppBar(
@@ -51,35 +52,19 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.md),
-
-            // 音频播放器
-            AudioPlayerWidget(resource: widget.resource),
-
             const SizedBox(height: AppSpacing.lg),
 
             // 分割功能
             SplitSectionWidget(
               resource: widget.resource,
-              onSegmentsGenerated: () {
-                // 触发 SegmentListWidget 刷新
-                print('📊 ValueNotifier 触发，当前值: ${_reloadNotifier.value} → ${!_reloadNotifier.value}');
-                _reloadNotifier.value = !_reloadNotifier.value;
-              },
             ),
 
             const SizedBox(height: AppSpacing.xl),
 
-            // 学习单元列表
-            ValueListenableBuilder<bool>(
-              valueListenable: _reloadNotifier,
-              builder: (context, value, child) {
-                print('🎯 ValueListenableBuilder 重建, shouldReload=$value');
-                return SegmentListWidget(
-                  resource: widget.resource,
-                  shouldReload: value,
-                );
-              },
+            // 学习单元列表 - 直接使用，无需 ValueListenableBuilder
+            SegmentListWidget(
+              resource: widget.resource,
+              key: ValueKey(segmentationState.segments?.length ?? 0), // 使用 key 强制重建
             ),
 
             const SizedBox(height: AppSpacing.xxl),

@@ -13,12 +13,10 @@ import 'loading_indicator.dart';
 
 class SplitSectionWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
-  final VoidCallback? onSegmentsGenerated;
 
   const SplitSectionWidget({
     super.key,
     required this.resource,
-    this.onSegmentsGenerated,
   });
 
   @override
@@ -40,8 +38,12 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
     final hasSegments = await StorageService.instance.hasSegments(widget.resource.id);
     if (hasSegments && mounted) {
-      // 如果已经有分割数据，触发回调加载
-      widget.onSegmentsGenerated?.call();
+      // 如果已经有分割数据，加载并更新到 provider
+      final segments = await StorageService.instance.loadSegments(widget.resource.id);
+      if (segments != null && mounted) {
+        ref.read(resourceSegmentationProvider(widget.resource.id).notifier)
+            .completeSegmenting(segments);
+      }
     }
   }
 
@@ -95,9 +97,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
         _showMessage('已清空分割数据');
 
-        // 触发回调刷新列表
-        print('🔄 清空分割完成，调用 onSegmentsGenerated');
-        widget.onSegmentsGenerated?.call();
+        // Riverpod 会自动通知所有监听器刷新
       }
     } catch (e) {
       if (mounted) {
@@ -170,8 +170,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
           _showMessage('音频分割完成！已生成 ${nonSilenceSegments.length} 个学习单元');
 
-          // 触发回调通知父组件刷新
-          widget.onSegmentsGenerated?.call();
+          // Riverpod 会自动通知所有监听器刷新
         }
       } else {
         if (mounted) {

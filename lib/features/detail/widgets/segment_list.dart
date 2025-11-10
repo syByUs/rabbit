@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
+import '../../../core/providers/app_state_provider.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/audio_cache_service.dart';
 import '../../../core/services/audio_segmentation_service.dart';
@@ -14,12 +15,10 @@ import 'loading_indicator.dart';
 
 class SegmentListWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
-  final bool shouldReload;
 
   const SegmentListWidget({
     super.key,
     required this.resource,
-    this.shouldReload = false,
   });
 
   @override
@@ -79,16 +78,10 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   @override
   void didUpdateWidget(SegmentListWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    print('✅ didUpdateWidget 被调用, old.shouldReload=${oldWidget.shouldReload}, new.shouldReload=${widget.shouldReload}');
 
     // 当资源ID改变时，重新加载数据
     if (oldWidget.resource.id != widget.resource.id) {
       print('📁 资源ID改变，重新加载数据');
-      _loadSegments();
-    }
-    // 当 shouldReload 改变时，重新加载数据（无论 true/false）
-    if (oldWidget.shouldReload != widget.shouldReload) {
-      print('🔥 shouldReload 改变，重新加载数据 (旧值: ${oldWidget.shouldReload}, 新值: ${widget.shouldReload})');
       _loadSegments();
     }
   }
@@ -128,6 +121,12 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听 Riverpod 状态变化，当分割完成时自动使用最新的 segments
+    final segmentationState = ref.watch(resourceSegmentationProvider(widget.resource.id));
+    
+    // 如果 Riverpod 中有 segments 且不在加载中，优先使用 Riverpod 的数据
+    final displaySegments = segmentationState.segments ?? segments;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
@@ -146,9 +145,9 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                if (segments != null && segments!.isNotEmpty)
+                if (displaySegments != null && displaySegments.isNotEmpty)
                   Text(
-                    '${segments!.where((s) => !s.isSilence).length} 单元',
+                    '${displaySegments.where((s) => !s.isSilence).length} 单元',
                     style: TextStyle(
                       fontSize: 14.0,
                       color: AppColors.textSecondary,
@@ -159,11 +158,11 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           ),
           const SizedBox(height: AppSpacing.md),
 
-          if (isLoading)
+          if (isLoading || segmentationState.isSegmenting)
             const Center(
               child: LoadingIndicator(message: '正在加载分割数据...'),
             )
-          else if (segments == null || segments!.isEmpty)
+          else if (displaySegments == null || displaySegments.isEmpty)
             Container(
               padding: const EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
@@ -191,7 +190,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    '点击上方"通过静音点自动分割"按钮开始',
+                    '点击上方"静音分割"按钮开始',
                     style: TextStyle(
                       fontSize: 14.0,
                       color: AppColors.textSecondary,
@@ -202,15 +201,15 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
               ),
             )
           else
-            _buildSegmentList(),
+            _buildSegmentList(displaySegments),
         ],
       ),
     );
   }
 
-  Widget _buildSegmentList() {
+  Widget _buildSegmentList(List<AudioSegment> displaySegments) {
     // 过滤掉静音片段，只显示非静音的学习单元
-    final learningSegments = segments!.where((segment) => !segment.isSilence).toList();
+    final learningSegments = displaySegments.where((segment) => !segment.isSilence).toList();
 
     if (learningSegments.isEmpty) {
       return const Text(
