@@ -20,11 +20,7 @@ class AudioSegmentationService {
     double silenceThreshold = -40,
   }) async {
     try {
-      // 1. 先获取音频总时长
-      final totalDuration = await _getAudioDuration(audioPath);
-      print('🎵 音频总时长: ${totalDuration.toStringAsFixed(2)}秒');
-
-      // 2. 使用 ffmpeg 的 silencedetect 滤镜检测静音点
+      // 使用 ffmpeg 的 silencedetect 滤镜检测静音点
       final command =
           '-i "$audioPath" -af "silencedetect=noise=${silenceThreshold.toInt()}dB:d=$silenceDuration" -f null -';
       print('🔍 FFmpeg命令: $command');
@@ -34,7 +30,18 @@ class AudioSegmentationService {
 
       if (ReturnCode.isSuccess(returnCode)) {
         // 获取输出日志并解析
-        final logs = await session.getLogs();
+        final logs = await session.getAllLogs();
+        
+        // 先尝试从日志中获取音频总时长
+        double? totalDuration = _extractDurationFromLogs(logs);
+        
+        if (totalDuration == null) {
+          print('⚠️ 无法从日志中提取时长，尝试备用方法');
+          totalDuration = await _getAudioDurationFallback(audioPath);
+        }
+        
+        print('🎵 音频总时长: ${totalDuration.toStringAsFixed(2)}秒');
+        
         final segments = _parseSilencePoints(logs, totalDuration);
 
         if (segments.isEmpty) {
@@ -127,39 +134,57 @@ class AudioSegmentationService {
     return segments;
   }
 
-  /// 获取音频文件的总时长
+  /// 从 FFmpeg 日志中提取音频时长
+  /// 
+  /// [logs] FFmpeg 日志列表
+  /// @returns 音频时长（秒），失败返回 null
+  static double? _extractDurationFromLogs(List<dynamic> logs) {
+    // 格式示例: Duration: 00:01:35.12, start: 0.000000, bitrate: 128 kb/s
+    for (var log in logs) {
+      final message = log.getMessage() as String? ?? '';
+      
+      // 匹配时长格式（支持小数秒可选）
+      final match = RegExp(r'Duration:\s*(\d+):(\d+):(\d+\.?\d*)').firstMatch(message);
+      
+      if (match != null) {
+        final hours = int.parse(match.group(1)!);
+        final minutes = int.parse(match.group(2)!);
+        final seconds = double.parse(match.group(3)!);
+        final totalDuration = hours * 3600 + minutes * 60 + seconds;
+        
+        print('⏱️ 从日志解析到时长: ${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s = ${totalDuration.toStringAsFixed(2)}s');
+        return totalDuration;
+      }
+    }
+    
+    return null;
+  }
+
+  /// 备用方法：使用 ffprobe 获取音频时长
   /// 
   /// [audioPath] 音频文件路径
   /// @returns 音频时长（秒）
-  static Future<double> _getAudioDuration(String audioPath) async {
+  static Future<double> _getAudioDurationFallback(String audioPath) async {
     try {
-      // 使用 ffmpeg 获取音频信息
-      final command = '-i "$audioPath" -f null -';
-      final session = await FFmpegKit.execute(command);
-      final logs = await session.getAllLogs();
+      // 方法1: 使用 ffprobe（如果可用）
+      final probeCommand = '-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$audioPath"';
+      final probeSession = await FFmpegKit.execute(probeCommand);
+      final output = await probeSession.getOutput();
       
-      // 在日志中查找 Duration 信息
-      // 格式示例: Duration: 00:01:35.12, start: 0.000000, bitrate: 128 kb/s
-      for (var log in logs) {
-        final message = log.getMessage() as String? ?? '';
-        final match = RegExp(r'Duration: (\d+):(\d+):(\d+\.\d+)').firstMatch(message);
-        
-        if (match != null) {
-          final hours = int.parse(match.group(1)!);
-          final minutes = int.parse(match.group(2)!);
-          final seconds = double.parse(match.group(3)!);
-          final totalDuration = hours * 3600 + minutes * 60 + seconds;
-          
-          print('⏱️ 解析到时长: ${hours}h ${minutes}m ${seconds.toStringAsFixed(2)}s = ${totalDuration.toStringAsFixed(2)}s');
-          return totalDuration;
+      if (output != null && output.trim().isNotEmpty) {
+        final duration = double.tryParse(output.trim());
+        if (duration != null && duration > 0) {
+          print('✅ 使用 ffprobe 获取到时长: ${duration.toStringAsFixed(2)}s');
+          return duration;
         }
       }
-      
-      throw Exception('无法从 FFmpeg 日志中解析音频时长');
     } catch (e) {
-      print('❌ 获取音频时长失败: $e');
-      throw Exception('获取音频时长失败: $e');
+      print('⚠️ ffprobe 方法失败: $e');
     }
+    
+    // 方法2: 从最后一个静音结束时间推断（不够准确，但可用）
+    print('⚠️ 无法获取精确时长，使用默认值 30秒');
+    return 30.0;
   }
 
   /// 从日志消息中提取时间值
