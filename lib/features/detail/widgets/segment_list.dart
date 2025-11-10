@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
@@ -29,11 +31,49 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   List<AudioSegment>? segments;
   int? playingSegmentIndex; // 当前正在播放的片段索引
   Set<int> segmentingIndexes = {}; // 正在分割的片段索引集合
+  StreamSubscription? _playerCompleteSubscription;
+  StreamSubscription? _playerStateSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadSegments();
+    _setupAudioListeners();
+  }
+
+  @override
+  void dispose() {
+    // 清理音频播放器状态和监听器
+    _playerCompleteSubscription?.cancel();
+    _playerStateSubscription?.cancel();
+    AudioHelper.stop();
+    super.dispose();
+  }
+
+  /// 设置音频监听器
+  void _setupAudioListeners() {
+    // 监听播放完成事件
+    _playerCompleteSubscription = AudioHelper.player.onPlayerComplete.listen((_) {
+      print('🎵 音频播放完成');
+      if (mounted) {
+        setState(() {
+          playingSegmentIndex = null;
+        });
+      }
+    });
+
+    // 监听播放状态变化
+    _playerStateSubscription = AudioHelper.player.onPlayerStateChanged.listen((state) {
+      print('🎵 音频状态变化: $state');
+      if (mounted) {
+        // 如果状态变为停止或完成，清除播放索引
+        if (state == PlayerState.stopped || state == PlayerState.completed) {
+          setState(() {
+            playingSegmentIndex = null;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -203,6 +243,22 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   /// 播放音频片段
   Future<void> _playSegment(AudioSegment segment, int index) async {
     try {
+      // 如果点击的是当前正在播放的片段，则暂停
+      if (playingSegmentIndex == index) {
+        print('⏸️ 暂停当前播放的片段 $index');
+        await AudioHelper.pause();
+        setState(() {
+          playingSegmentIndex = null;
+        });
+        return;
+      }
+
+      // 如果正在播放其他片段，先停止
+      if (playingSegmentIndex != null) {
+        print('⏹️ 停止其他片段的播放');
+        await AudioHelper.stop();
+      }
+
       print('🎵 准备播放片段 $index: ${segment.timeRange}');
 
       // 检查是否已有缓存的分割音频
