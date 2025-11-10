@@ -270,9 +270,15 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
 
   Widget _buildSegmentList(List<AudioSegment> displaySegments) {
     // 过滤掉静音片段，只显示非静音的学习单元
-    final learningSegments = displaySegments.where((segment) => !segment.isSilence).toList();
+    // 同时保存原始索引，以便正确定位缓存文件
+    final learningSegmentsWithIndex = <({AudioSegment segment, int originalIndex})>[];
+    for (int i = 0; i < displaySegments.length; i++) {
+      if (!displaySegments[i].isSilence) {
+        learningSegmentsWithIndex.add((segment: displaySegments[i], originalIndex: i));
+      }
+    }
 
-    if (learningSegments.isEmpty) {
+    if (learningSegmentsWithIndex.isEmpty) {
       return const Text(
         '没有可用的学习单元',
         style: TextStyle(color: AppColors.textSecondary),
@@ -282,17 +288,20 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: learningSegments.length,
-      itemBuilder: (context, index) {
-        final segment = learningSegments[index];
-        final isPlaying = playingSegmentIndex == index;
-        final isPreparing = preparingSegmentIndex == index;
-        final isSegmenting = segmentingIndexes.contains(index);
-        final isLoopingThis = loopingSegmentIndex == index;
+      itemCount: learningSegmentsWithIndex.length,
+      itemBuilder: (context, listViewIndex) {
+        final item = learningSegmentsWithIndex[listViewIndex];
+        final segment = item.segment;
+        final originalIndex = item.originalIndex; // 原始数组中的真实索引
+        
+        final isPlaying = playingSegmentIndex == originalIndex;
+        final isPreparing = preparingSegmentIndex == originalIndex;
+        final isSegmenting = segmentingIndexes.contains(originalIndex);
+        final isLoopingThis = loopingSegmentIndex == originalIndex;
         
         return _SegmentItem(
           segment: segment,
-          index: index + 1,
+          index: listViewIndex + 1, // 显示用的序号（1-based）
           isPlaying: isPlaying,
           isPreparing: isPreparing,
           isSegmenting: isSegmenting,
@@ -301,8 +310,8 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           currentLoop: isLoopingThis ? loopCount + 1 : 0,
           totalLoops: totalLoops,
           onTap: () => _openSegment(segment),
-          onPlayTap: () => _playSegment(segment, index),
-          onLoopTap: () => _startLoopPlay(segment, index),
+          onPlayTap: () => _playSegment(segment, originalIndex), // 使用原始索引
+          onLoopTap: () => _startLoopPlay(segment, originalIndex), // 使用原始索引
           onLoopTogglePause: _toggleLoopPause,
           onLoopStop: _stopLoopPlay,
         );
@@ -440,15 +449,15 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   }
 
   /// 播放单次循环迭代（内部使用）
-  Future<void> _playLoopIteration(int index) async {
-    final learningSegments = segments!.where((s) => !s.isSilence).toList();
-    if (index >= learningSegments.length) return;
+  /// 注意：index 是原始 segments 数组中的索引，不是 ListView 的索引
+  Future<void> _playLoopIteration(int originalIndex) async {
+    if (segments == null || originalIndex >= segments!.length) return;
     
-    final segment = learningSegments[index];
-    final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
+    final segment = segments![originalIndex];
+    final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, originalIndex);
     
     setState(() {
-      playingSegmentIndex = index;
+      playingSegmentIndex = originalIndex;
     });
     
     await AudioHelper.playFile(segmentPath);
