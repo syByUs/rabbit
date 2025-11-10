@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:rabbit/core/themes/app_theme.dart';
 import '../../core/providers/app_state_provider.dart';
 import '../../core/models/resource_model.dart';
+import '../../core/utils/audio_helper.dart';
 import 'widgets/resource_card.dart';
 import 'widgets/search_bar.dart';
 import 'widgets/category_tabs.dart';
@@ -97,10 +100,71 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
-  void _showImportDialog(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('导入音频功能开发中...')),
-    );
+  void _showImportDialog(BuildContext context) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'],
+        allowMultiple: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      // 显示导入状态
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('正在导入音频文件...')),
+      );
+
+      // 处理导入的文件
+      final ref = ProviderScope.containerOf(context);
+      for (var file in result.files) {
+        final fileName = file.name;
+        final filePath = file.path!;
+
+        try {
+          // 获取音频时长
+          Duration? durationValue = await AudioHelper.getAudioDuration(filePath);
+          final durationText = durationValue != null
+              ? _formatDuration(durationValue)
+              : '未知';
+
+          // 创建新的音频资源
+          final newResource = AudioResource(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            title: path.basenameWithoutExtension(fileName),
+            duration: durationText,
+            progress: 0,
+            status: LearningStatus.notStarted,
+            category: ResourceCategory.custom,
+          );
+
+          // 添加到资源列表
+          ref
+              .read(resourceListNotifierProvider.notifier)
+              .addResource(newResource);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('成功导入: $fileName')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('导入失败: $fileName - $e')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('文件选择出错: $e')),
+      );
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 

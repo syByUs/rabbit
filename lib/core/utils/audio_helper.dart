@@ -70,4 +70,17 @@ class AudioHelper {
 
   /// Get player instance for advanced usage
   static AudioPlayer get player => _player;
+
+  /// Get audio duration from file
+  static Future<Duration?> getAudioDuration(String filePath) async {
+    final tempPlayer = AudioPlayer();
+    try {
+      await tempPlayer.setSource(DeviceFileSource(filePath));
+      return await tempPlayer.getDuration();
+    } catch (e) {
+      return null;
+    } finally {
+      await tempPlayer.release();
+    }
+  }
 }

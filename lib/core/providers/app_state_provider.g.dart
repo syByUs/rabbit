@@ -15,15 +15,12 @@ String _$isProUserHash() => r'd3b85fc20a2b192c0155cf31d77ea724f6123507';
 final isProUserProvider = AutoDisposeProvider<bool>.internal(
   isProUser,
   name: r'isProUserProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$isProUserHash,
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$isProUserHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
 typedef IsProUserRef = AutoDisposeProviderRef<bool>;
 String _$currentResourceSegmentationHash() =>
     r'838623ebc2c85a5a4b3cc4602e199eab1aed483e';
@@ -34,19 +31,17 @@ String _$currentResourceSegmentationHash() =>
 @ProviderFor(currentResourceSegmentation)
 final currentResourceSegmentationProvider =
     AutoDisposeProvider<SegmentationState>.internal(
-      currentResourceSegmentation,
-      name: r'currentResourceSegmentationProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$currentResourceSegmentationHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  currentResourceSegmentation,
+  name: r'currentResourceSegmentationProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$currentResourceSegmentationHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef CurrentResourceSegmentationRef =
-    AutoDisposeProviderRef<SegmentationState>;
+typedef CurrentResourceSegmentationRef
+    = AutoDisposeProviderRef<SegmentationState>;
 String _$userStateNotifierHash() => r'8bfb606cf0a893de2c0cb5e0dc21470d4d9436a0';
 
 /// 应用状态Notifier
@@ -55,14 +50,14 @@ String _$userStateNotifierHash() => r'8bfb606cf0a893de2c0cb5e0dc21470d4d9436a0';
 @ProviderFor(UserStateNotifier)
 final userStateNotifierProvider =
     AutoDisposeNotifierProvider<UserStateNotifier, UserState>.internal(
-      UserStateNotifier.new,
-      name: r'userStateNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$userStateNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  UserStateNotifier.new,
+  name: r'userStateNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$userStateNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$UserStateNotifier = AutoDisposeNotifier<UserState>;
 String _$audioPlaybackNotifierHash() =>
@@ -72,23 +67,20 @@ String _$audioPlaybackNotifierHash() =>
 ///
 /// Copied from [AudioPlaybackNotifier].
 @ProviderFor(AudioPlaybackNotifier)
-final audioPlaybackNotifierProvider =
-    AutoDisposeNotifierProvider<
-      AudioPlaybackNotifier,
-      AudioPlaybackState
-    >.internal(
-      AudioPlaybackNotifier.new,
-      name: r'audioPlaybackNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$audioPlaybackNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final audioPlaybackNotifierProvider = AutoDisposeNotifierProvider<
+    AudioPlaybackNotifier, AudioPlaybackState>.internal(
+  AudioPlaybackNotifier.new,
+  name: r'audioPlaybackNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$audioPlaybackNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$AudioPlaybackNotifier = AutoDisposeNotifier<AudioPlaybackState>;
 String _$resourceListNotifierHash() =>
-    r'b855dcb83d8a4a5cb20279ca2d687a5a8dc67b76';
+    r'6d04bf8c44741f6bb2f0165da52ccead48dd7fec';
 
 /// ============================================
 /// 资源列表状态
@@ -97,19 +89,16 @@ String _$resourceListNotifierHash() =>
 ///
 /// Copied from [ResourceListNotifier].
 @ProviderFor(ResourceListNotifier)
-final resourceListNotifierProvider =
-    AutoDisposeNotifierProvider<
-      ResourceListNotifier,
-      List<AudioResource>
-    >.internal(
-      ResourceListNotifier.new,
-      name: r'resourceListNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$resourceListNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final resourceListNotifierProvider = AutoDisposeNotifierProvider<
+    ResourceListNotifier, List<AudioResource>>.internal(
+  ResourceListNotifier.new,
+  name: r'resourceListNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$resourceListNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$ResourceListNotifier = AutoDisposeNotifier<List<AudioResource>>;
 String _$searchQueryNotifierHash() =>
@@ -124,14 +113,14 @@ String _$searchQueryNotifierHash() =>
 @ProviderFor(SearchQueryNotifier)
 final searchQueryNotifierProvider =
     AutoDisposeNotifierProvider<SearchQueryNotifier, String>.internal(
-      SearchQueryNotifier.new,
-      name: r'searchQueryNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$searchQueryNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  SearchQueryNotifier.new,
+  name: r'searchQueryNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$searchQueryNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$SearchQueryNotifier = AutoDisposeNotifier<String>;
 String _$selectedCategoryNotifierHash() =>
@@ -143,14 +132,14 @@ String _$selectedCategoryNotifierHash() =>
 @ProviderFor(SelectedCategoryNotifier)
 final selectedCategoryNotifierProvider =
     AutoDisposeNotifierProvider<SelectedCategoryNotifier, String>.internal(
-      SelectedCategoryNotifier.new,
-      name: r'selectedCategoryNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$selectedCategoryNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  SelectedCategoryNotifier.new,
+  name: r'selectedCategoryNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$selectedCategoryNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$SelectedCategoryNotifier = AutoDisposeNotifier<String>;
 String _$selectedResourceNotifierHash() =>
@@ -160,20 +149,17 @@ String _$selectedResourceNotifierHash() =>
 ///
 /// Copied from [SelectedResourceNotifier].
 @ProviderFor(SelectedResourceNotifier)
-final selectedResourceNotifierProvider =
-    AutoDisposeNotifierProvider<
-      SelectedResourceNotifier,
-      AudioResource?
-    >.internal(
-      SelectedResourceNotifier.new,
-      name: r'selectedResourceNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$selectedResourceNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final selectedResourceNotifierProvider = AutoDisposeNotifierProvider<
+    SelectedResourceNotifier, AudioResource?>.internal(
+  SelectedResourceNotifier.new,
+  name: r'selectedResourceNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$selectedResourceNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$SelectedResourceNotifier = AutoDisposeNotifier<AudioResource?>;
 // ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

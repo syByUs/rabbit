@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/audio_segment_model.dart';
 import '../models/resource_model.dart';
+import '../database/database_helper.dart';
+import '../database/audio_resource_schema.dart';
 
 part 'app_state_provider.g.dart';
 
@@ -116,17 +119,63 @@ class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
 class ResourceListNotifier extends _$ResourceListNotifier {
   @override
   List<AudioResource> build() {
+    // 初始返回空列表，然后在初始化方法中加载数据
+    _loadResources();
     return sampleResources;
   }
 
-  void updateResource(AudioResource updatedResource) {
-    state = state.map((resource) {
-      return resource.id == updatedResource.id ? updatedResource : resource;
-    }).toList();
+  Future<void> _loadResources() async {
+    // 加载数据库中的资源
+    final resources = await DatabaseHelper.getAllAudioResources();
+    if (resources.isNotEmpty) {
+      state = resources.map((e) => e.toAudioResource()).toList();
+    }
   }
 
-  void addResource(AudioResource newResource) {
+  Future<void> updateResource(AudioResource updatedResource) async {
+    // 更新数据库中的资源
+    final isarResource = await DatabaseHelper.getAudioResourceById(updatedResource.id);
+    if (isarResource != null) {
+      final newResource = AudioResourceIsar.fromAudioResource(updatedResource);
+      newResource.id = isarResource.id; // 保持原始ID
+      await DatabaseHelper.saveAudioResource(newResource);
+    }
+
+    // 更新状态
+    state = [
+      for (final resource in state)
+        resource.id == updatedResource.id ? updatedResource : resource
+    ];
+  }
+
+  Future<void> addResource(AudioResource newResource) async {
+    // 保存到数据库
+    final isarResource = AudioResourceIsar.fromAudioResource(newResource);
+    await DatabaseHelper.saveAudioResource(isarResource);
+
+    // 更新状态
     state = [...state, newResource];
+  }
+
+  Future<void> deleteResource(String resourceId) async {
+    // 删除数据库中的资源
+    final isarResource = await DatabaseHelper.getAudioResourceById(resourceId);
+    if (isarResource != null) {
+      await DatabaseHelper.deleteAudioResource(isarResource.id);
+    }
+
+    // 更新状态
+    state = state.where((r) => r.id != resourceId).toList();
+  }
+
+  Future<void> refresh() async {
+    try {
+      final resources = await DatabaseHelper.getAllAudioResources();
+      state = resources.map((e) => e.toAudioResource()).toList();
+    } catch (e, stack) {
+      // 保持当前状态或设置为错误状态
+      debugPrint('Failed to refresh resources: $e');
+    }
   }
 }
 
