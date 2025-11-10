@@ -8,6 +8,7 @@ class AppColors {
   // 主色调
   static const primary50 = Color(0xFFF0F7FF);
   static const primary100 = Color(0xFFE0F0FF);
+  static const primary200 = Color(0xFFBAE6FD);
   static const primary500 = Color(0xFF1E40AF);
   static const primary600 = Color(0xFF1E3A8A);
   static const primary700 = Color(0xFF1E3A8A);
@@ -17,7 +18,15 @@ class AppColors {
   static const secondary600 = Color(0xFFEC4899);
   static const accent500 = Color(0xFF60A5FA);
   static const success500 = Color(0xFF10B981);
+  
+  // 警告色系（黄色）
+  static const warning50 = Color(0xFFFFFBEB);
+  static const warning100 = Color(0xFFFEF3C7);
+  static const warning200 = Color(0xFFFDE68A);
+  static const warning400 = Color(0xFFFBBF24);
   static const warning500 = Color(0xFFF59E0B);
+  static const warning600 = Color(0xFFD97706);
+  static const warning700 = Color(0xFFB45309);
 
   // PRO 主题色
   static const proGold = Color(0xFFF59E0B);
@@ -28,6 +37,8 @@ class AppColors {
   static const neutral50 = Color(0xFFF9FAFB);
   static const neutral100 = Color(0xFFF3F4F6);
   static const neutral200 = Color(0xFFE5E7EB);
+  static const neutral300 = Color(0xFFD1D5DB);
+  static const neutral400 = Color(0xFF9CA3AF);
   static const neutral500 = Color(0xFF6B7280);
   static const neutral900 = Color(0xFF111827);
 

@@ -29,6 +29,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   bool isLoading = false;
   List<AudioSegment>? segments;
   int? playingSegmentIndex; // 当前正在播放的片段索引
+  int? preparingSegmentIndex; // 正在准备播放的片段索引（延迟期间）
   Set<int> segmentingIndexes = {}; // 正在分割的片段索引集合
   StreamSubscription? _playerCompleteSubscription;
   StreamSubscription? _playerStateSubscription;
@@ -250,12 +251,14 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
       itemBuilder: (context, index) {
         final segment = learningSegments[index];
         final isPlaying = playingSegmentIndex == index;
+        final isPreparing = preparingSegmentIndex == index;
         final isSegmenting = segmentingIndexes.contains(index);
         
         return _SegmentItem(
           segment: segment,
           index: index + 1,
           isPlaying: isPlaying,
+          isPreparing: isPreparing,
           isSegmenting: isSegmenting,
           onTap: () => _openSegment(segment),
           onPlayTap: () => _playSegment(segment, index),
@@ -294,11 +297,28 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
         final segmentPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
         
         setState(() {
-          playingSegmentIndex = index;
+          preparingSegmentIndex = index; // 设置准备状态
         });
         
-        await AudioHelper.playFile(segmentPath);
-        print('🔊 开始播放缓存音频: $segmentPath');
+        // 延迟 500ms 给用户准备时间
+        print('⏳ 等待 500ms 让用户准备...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // 检查是否仍然应该播放（用户可能在等待期间取消了）
+        if (preparingSegmentIndex == index && mounted) {
+          setState(() {
+            preparingSegmentIndex = null;
+            playingSegmentIndex = index;
+          });
+          
+          await AudioHelper.playFile(segmentPath);
+          print('🔊 开始播放缓存音频: $segmentPath');
+        } else {
+          // 用户取消了播放
+          setState(() {
+            preparingSegmentIndex = null;
+          });
+        }
       } else {
         // 需要先分割音频
         print('⚙️ 音频片段未缓存，开始分割...');
@@ -320,16 +340,33 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
             segment: segment,
           );
 
-          print('✅ 音频分割完成，开始播放');
+          print('✅ 音频分割完成，准备播放');
 
-          // 3. 播放分割后的音频
+          // 3. 更新状态为准备中
           setState(() {
             segmentingIndexes.remove(index);
-            playingSegmentIndex = index;
+            preparingSegmentIndex = index;
           });
           
-          await AudioHelper.playFile(outputPath);
-          print('🔊 开始播放新分割的音频: $outputPath');
+          // 延迟 500ms 给用户准备时间
+          print('⏳ 等待 500ms 让用户准备...');
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // 检查是否仍然应该播放
+          if (preparingSegmentIndex == index && mounted) {
+            setState(() {
+              preparingSegmentIndex = null;
+              playingSegmentIndex = index;
+            });
+            
+            await AudioHelper.playFile(outputPath);
+            print('🔊 开始播放新分割的音频: $outputPath');
+          } else {
+            // 用户取消了播放
+            setState(() {
+              preparingSegmentIndex = null;
+            });
+          }
         } catch (e) {
           print('❌ 分割音频失败: $e');
           setState(() {
@@ -381,6 +418,7 @@ class _SegmentItem extends StatelessWidget {
   final AudioSegment segment;
   final int index;
   final bool isPlaying;
+  final bool isPreparing;
   final bool isSegmenting;
   final VoidCallback onTap;
   final VoidCallback onPlayTap;
@@ -389,6 +427,7 @@ class _SegmentItem extends StatelessWidget {
     required this.segment,
     required this.index,
     required this.isPlaying,
+    required this.isPreparing,
     required this.isSegmenting,
     required this.onTap,
     required this.onPlayTap,
@@ -396,6 +435,37 @@ class _SegmentItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 确定当前状态的颜色和样式
+    final Color backgroundColor;
+    final Color borderColor;
+    final double borderWidth;
+    final Color numberBgColor;
+    final Color numberTextColor;
+    final Color titleColor;
+    
+    if (isPlaying) {
+      backgroundColor = AppColors.primary50;
+      borderColor = AppColors.primary500;
+      borderWidth = 2.0;
+      numberBgColor = AppColors.primary100;
+      numberTextColor = AppColors.primary700;
+      titleColor = AppColors.primary700;
+    } else if (isPreparing) {
+      backgroundColor = AppColors.warning50;
+      borderColor = AppColors.warning400;
+      borderWidth = 2.0;
+      numberBgColor = AppColors.warning100;
+      numberTextColor = AppColors.warning700;
+      titleColor = AppColors.warning700;
+    } else {
+      backgroundColor = AppColors.neutral0;
+      borderColor = AppColors.neutral200;
+      borderWidth = 1.0;
+      numberBgColor = AppColors.primary50;
+      numberTextColor = AppColors.primary500;
+      titleColor = AppColors.textPrimary;
+    }
+    
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Material(
@@ -406,12 +476,12 @@ class _SegmentItem extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: isPlaying ? AppColors.primary50 : AppColors.neutral0,
+              color: backgroundColor,
               borderRadius: BorderRadius.circular(AppRadius.md),
               boxShadow: AppShadows.small,
               border: Border.all(
-                color: isPlaying ? AppColors.primary500 : AppColors.neutral200,
-                width: isPlaying ? 2.0 : 1.0,
+                color: borderColor,
+                width: borderWidth,
               ),
             ),
             child: Row(
@@ -420,7 +490,7 @@ class _SegmentItem extends StatelessWidget {
                   width: 40.0,
                   height: 40.0,
                   decoration: BoxDecoration(
-                    color: isPlaying ? AppColors.primary100 : AppColors.primary50,
+                    color: numberBgColor,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Center(
@@ -429,7 +499,7 @@ class _SegmentItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.w700,
-                        color: isPlaying ? AppColors.primary700 : AppColors.primary500,
+                        color: numberTextColor,
                       ),
                     ),
                   ),
@@ -439,13 +509,28 @@ class _SegmentItem extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '片段 $index',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w600,
-                          color: isPlaying ? AppColors.primary700 : AppColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            '片段 $index',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.w600,
+                              color: titleColor,
+                            ),
+                          ),
+                          if (isPreparing) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              '准备中...',
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                color: AppColors.warning600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.xs / 2),
                       Text(
@@ -467,18 +552,20 @@ class _SegmentItem extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: isSegmenting ? null : onPlayTap,
+                  onTap: (isSegmenting || isPreparing) ? null : onPlayTap,
                   child: Container(
                     width: 32.0,
                     height: 32.0,
                     decoration: BoxDecoration(
                       color: isSegmenting 
-                          ? AppColors.neutral500
-                          : (isPlaying ? AppColors.primary600 : AppColors.primary500),
+                          ? AppColors.neutral400
+                          : isPreparing
+                              ? AppColors.warning500
+                              : (isPlaying ? AppColors.primary600 : AppColors.primary500),
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Center(
-                      child: isSegmenting
+                      child: (isSegmenting || isPreparing)
                           ? const SizedBox(
                               width: 16.0,
                               height: 16.0,
