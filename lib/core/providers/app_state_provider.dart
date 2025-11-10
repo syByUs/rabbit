@@ -154,7 +154,7 @@ class ResourceListNotifier extends _$ResourceListNotifier {
     await DatabaseHelper.saveAudioResource(isarResource);
 
     // 更新状态
-    state = [...state, newResource];
+    state = [newResource, ...state];
   }
 
   Future<void> deleteResource(String resourceId) async {
