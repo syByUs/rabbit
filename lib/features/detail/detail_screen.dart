@@ -63,6 +63,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
               resource: widget.resource,
               onSegmentsGenerated: () {
                 // 触发 SegmentListWidget 刷新
+                print('📊 ValueNotifier 触发，当前值: ${_reloadNotifier.value} → ${!_reloadNotifier.value}');
                 _reloadNotifier.value = !_reloadNotifier.value;
               },
             ),
@@ -73,8 +74,10 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
             ValueListenableBuilder<bool>(
               valueListenable: _reloadNotifier,
               builder: (context, value, child) {
+                print('🎯 ValueListenableBuilder 重建, shouldReload=$value');
                 return SegmentListWidget(
                   resource: widget.resource,
+                  shouldReload: value,
                 );
               },
             ),

@@ -10,10 +10,12 @@ import 'loading_indicator.dart';
 
 class SegmentListWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
+  final bool shouldReload;
 
   const SegmentListWidget({
     super.key,
     required this.resource,
+    this.shouldReload = false,
   });
 
   @override
@@ -33,8 +35,16 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
   @override
   void didUpdateWidget(SegmentListWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当widget更新时（资源ID改变），重新加载数据
+    print('✅ didUpdateWidget 被调用, old.shouldReload=${oldWidget.shouldReload}, new.shouldReload=${widget.shouldReload}');
+
+    // 当资源ID改变时，重新加载数据
     if (oldWidget.resource.id != widget.resource.id) {
+      print('📁 资源ID改变，重新加载数据');
+      _loadSegments();
+    }
+    // 当 shouldReload 改变时，重新加载数据（无论 true/false）
+    if (oldWidget.shouldReload != widget.shouldReload) {
+      print('🔥 shouldReload 改变，重新加载数据 (旧值: ${oldWidget.shouldReload}, 新值: ${widget.shouldReload})');
       _loadSegments();
     }
   }
@@ -44,9 +54,13 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
       isLoading = true;
     });
 
+    print('📥 开始加载分割数据，资源ID: ${widget.resource.id}');
+
     try {
       await StorageService.instance.initialize();
       final loadedSegments = await StorageService.instance.loadSegments(widget.resource.id);
+
+      print('📤 加载完成，找到 ${loadedSegments?.length ?? 0} 个分割');
 
       if (mounted) {
         setState(() {
@@ -55,6 +69,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
         });
       }
     } catch (e) {
+      print('❌ 加载失败: $e');
       if (mounted) {
         setState(() {
           isLoading = false;

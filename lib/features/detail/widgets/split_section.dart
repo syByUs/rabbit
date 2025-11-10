@@ -96,6 +96,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
         _showMessage('已清空分割数据');
 
         // 触发回调刷新列表
+        print('🔄 清空分割完成，调用 onSegmentsGenerated');
         widget.onSegmentsGenerated?.call();
       }
     } catch (e) {
@@ -168,6 +169,9 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
           });
 
           _showMessage('音频分割完成！已生成 ${nonSilenceSegments.length} 个学习单元');
+
+          // 触发回调通知父组件刷新
+          widget.onSegmentsGenerated?.call();
         }
       } else {
         if (mounted) {
@@ -235,7 +239,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
                 ),
                 elevation: 4.0,
               ),
-              child: const Text('通过静音点自动分割'),
+              child: const Text('静音分割'),
             ),
           const SizedBox(height: AppSpacing.sm),
           Row(
