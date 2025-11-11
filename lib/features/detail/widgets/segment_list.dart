@@ -303,7 +303,8 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           loopPaused: loopPaused,
           currentLoop: isLoopingThis ? loopCount + 1 : 0,
           totalLoops: totalLoops,
-          onTap: () => _openSegment(segment),
+          onTap: () => _playSegment(segment, index),
+          onDetailTap: () => _openSegment(segment),
           onPlayTap: () => _playSegment(segment, index),
           onLoopTap: () => _startLoopPlay(segment, index),
           onLoopTogglePause: _toggleLoopPause,
@@ -607,6 +608,7 @@ class _SegmentItem extends StatelessWidget {
   final int currentLoop;
   final int totalLoops;
   final VoidCallback onTap;
+  final VoidCallback onDetailTap;
   final VoidCallback onPlayTap;
   final VoidCallback onLoopTap;
   final VoidCallback onLoopTogglePause;
@@ -623,6 +625,7 @@ class _SegmentItem extends StatelessWidget {
     required this.currentLoop,
     required this.totalLoops,
     required this.onTap,
+    required this.onDetailTap,
     required this.onPlayTap,
     required this.onLoopTap,
     required this.onLoopTogglePause,
@@ -747,9 +750,29 @@ class _SegmentItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                // 按钮组：循环播放按钮 + 普通播放按钮
+                // 按钮组：详情按钮 + 循环播放按钮 + 普通播放按钮
                 Row(
                   children: [
+                    // 详情按钮（仅在非循环状态显示）
+                    if (!isLooping) ...[
+                      GestureDetector(
+                        onTap: onDetailTap,
+                        child: Container(
+                          width: 32.0,
+                          height: 32.0,
+                          decoration: BoxDecoration(
+                            color: AppColors.neutral400,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline,
+                            size: 16.0,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                    ],
                     // 循环播放按钮
                     if (isLooping) ...[
                       // 循环播放中的控制按钮
@@ -828,7 +851,7 @@ class _SegmentItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16.0),
+                      const SizedBox(width: 8.0),
                       // 普通播放按钮
                       GestureDetector(
                         onTap: (isSegmenting || isPreparing) ? null : onPlayTap,
