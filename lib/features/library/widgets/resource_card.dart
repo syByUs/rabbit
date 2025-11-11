@@ -32,12 +32,12 @@ class ResourceCard extends ConsumerWidget {
       }
 
       try {
-        // 从数据库获取音频文件路径
-        final isarResource = await DatabaseHelper.getAudioResourceById(resource.id);
-        String? localFilePath = isarResource?.filePath;
-
-        if (localFilePath != null && localFilePath.isNotEmpty) {
+        // 如果 resource 有 filePath（存储的是文件名），动态构建完整路径
+        if (resource.filePath != null && resource.filePath!.isNotEmpty) {
+          // 使用文件名构建当前的完整路径
+          final localFilePath = await DatabaseHelper.buildAudioFilePath(resource.filePath!);
           final file = File(localFilePath);
+          
           if (await file.exists()) {
             // 从本地文件播放（导入的资源）
             debugPrint('Playing from local file: $localFilePath');

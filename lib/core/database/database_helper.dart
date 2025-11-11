@@ -68,7 +68,8 @@ class DatabaseHelper {
 
       final destinationFile = await sourceFile.copy(destinationPath);
       debugPrint('Audio file copied to: ${destinationFile.path}');
-      return destinationFile.path;
+      // 只返回文件名，不返回完整路径
+      return fileNameWithoutPath;
     } catch (e) {
       debugPrint('Failed to copy audio file: $e');
       return null;
@@ -90,6 +91,12 @@ class DatabaseHelper {
       debugPrint('Failed to get audio file path: $e');
       return null;
     }
+  }
+
+  /// 根据文件名构建完整路径（不检查文件是否存在）
+  static Future<String> buildAudioFilePath(String fileName) async {
+    final audioDir = await getAudioDirectory();
+    return path.join(audioDir.path, path.basename(fileName));
   }
 
   /// 获取所有音频资源

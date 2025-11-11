@@ -46,6 +46,7 @@ class AudioResource {
   final SegmentationStatus segmentationStatus;
   final DateTime? lastStudied;
   final List<AudioSegment>? segments;
+  final String? filePath; // 存储文件名，不是完整路径（例如: "audio.mp3"）
 
   AudioResource({
     required this.id,
@@ -57,6 +58,7 @@ class AudioResource {
     this.segmentationStatus = SegmentationStatus.notSegmented,
     this.lastStudied,
     this.segments,
+    this.filePath,
   });
 
   /// 生成环形进度条路径

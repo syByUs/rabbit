@@ -18,8 +18,9 @@ class AudioResourceIsar {
   String? segmentationStatus;
   DateTime? lastStudied;
 
-  // 存储音频文件的实际路径（在应用私有目录中）
-  String? filePath;  // 本地文件路径
+  // 存储音频文件名（相对路径，不是绝对路径）
+  // iOS 每次启动应用容器路径会变化，因此只存储文件名
+  String? filePath;  // 文件名（例如: "audio.mp3"）
   String? originalFileName;  // 原始文件名
 
   AudioResourceIsar();
@@ -93,6 +94,7 @@ class AudioResourceIsar {
       category: categoryValue,
       segmentationStatus: segmentationValue,
       lastStudied: lastStudied,
+      filePath: filePath, // 添加文件路径
     );
   }
 }

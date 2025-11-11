@@ -140,6 +140,8 @@ class LibraryScreen extends ConsumerWidget {
             category: ResourceCategory.custom,
           );
 
+          print('fileName: ' + fileName);
+
           // 添加到资源列表（同时复制文件到应用目录）
           await ref
               .read(resourceListNotifierProvider.notifier)

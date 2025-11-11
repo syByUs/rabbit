@@ -136,7 +136,11 @@ class ResourceListNotifier extends _$ResourceListNotifier {
     // 更新数据库中的资源
     final isarResource = await DatabaseHelper.getAudioResourceById(updatedResource.id);
     if (isarResource != null) {
-      final newResource = AudioResourceIsar.fromAudioResource(updatedResource);
+      final newResource = AudioResourceIsar.fromAudioResource(
+        updatedResource,
+        filePath: updatedResource.filePath ?? isarResource.filePath,
+        originalFileName: isarResource.originalFileName,
+      );
       newResource.id = isarResource.id; // 保持原始ID
       await DatabaseHelper.saveAudioResource(newResource);
     }
