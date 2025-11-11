@@ -10,6 +10,7 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/services/audio_cache_service.dart';
 import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/utils/audio_helper.dart';
+import '../../../core/database/database_helper.dart';
 import '../../learning/learning_screen.dart';
 import 'loading_indicator.dart';
 
@@ -373,8 +374,13 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
         });
 
         try {
+          // 检查资源是否有文件路径
+          if (widget.resource.filePath == null || widget.resource.filePath!.isEmpty) {
+            throw Exception('资源没有关联的音频文件');
+          }
+
           // 1. 获取原始音频文件路径
-          final originalAudioPath = await AudioCacheService.instance.getAudioFilePath('audio/${widget.resource.id}.mp3');
+          final originalAudioPath = await DatabaseHelper.buildAudioFilePath(widget.resource.filePath!);
           print('📂 原始音频路径: $originalAudioPath');
 
           // 2. 使用 FFmpeg 分割音频片段
@@ -470,7 +476,12 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
         });
 
         try {
-          final originalAudioPath = await AudioCacheService.instance.getAudioFilePath('audio/${widget.resource.id}.mp3');
+          // 检查资源是否有文件路径
+          if (widget.resource.filePath == null || widget.resource.filePath!.isEmpty) {
+            throw Exception('资源没有关联的音频文件');
+          }
+
+          final originalAudioPath = await DatabaseHelper.buildAudioFilePath(widget.resource.filePath!);
           final outputPath = AudioCacheService.instance.getSegmentPath(widget.resource.id, index);
           await AudioSegmentationService.exportSingleSegment(
             inputPath: originalAudioPath,

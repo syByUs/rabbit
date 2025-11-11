@@ -5,6 +5,7 @@ import '../../../core/themes/app_theme.dart';
 import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/providers/app_state_provider.dart';
 import '../../../core/models/resource_model.dart';
+import '../../../core/database/database_helper.dart';
 
 class SegmentationDialog extends ConsumerStatefulWidget {
   final AudioResource resource;
@@ -92,6 +93,11 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
     });
 
     try {
+      // 检查资源是否有文件路径
+      if (widget.resource.filePath == null || widget.resource.filePath!.isEmpty) {
+        throw Exception('资源没有关联的音频文件');
+      }
+
       // 更新资源状态为处理中
       final resources = ref.read(resourceListNotifierProvider);
       final updatedResource = widget.resource.copyWith(
@@ -99,9 +105,12 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
       );
       ref.read(resourceListNotifierProvider.notifier).updateResource(updatedResource);
 
+      // 获取音频文件的完整路径
+      final audioPath = await DatabaseHelper.buildAudioFilePath(widget.resource.filePath!);
+
       // 执行分割
       final segments = await AudioSegmentationService.detectSilencePoints(
-        audioPath: 'audio/${widget.resource.title}',
+        audioPath: audioPath,
         silenceDuration: silenceDuration,
         silenceThreshold: silenceThreshold,
       );
@@ -135,6 +144,7 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
     } catch (e) {
       setState(() {
         errorMessage = '分割失败: ${e.toString()}';
+        print(errorMessage);
         isProcessing = false;
       });
 
@@ -162,6 +172,7 @@ extension on AudioResource {
       segmentationStatus: segmentationStatus ?? this.segmentationStatus,
       lastStudied: lastStudied,
       segments: segments ?? this.segments,
+      filePath: filePath, // 保留原有的 filePath
     );
   }
 }

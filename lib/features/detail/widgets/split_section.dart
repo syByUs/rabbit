@@ -9,6 +9,7 @@ import '../../../core/providers/app_state_provider.dart';
 import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/audio_cache_service.dart';
+import '../../../core/database/database_helper.dart';
 import 'loading_indicator.dart';
 import 'advanced_settings_dialog.dart';
 
@@ -125,6 +126,12 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
       return;
     }
 
+    // 检查资源是否有文件路径
+    if (widget.resource.filePath == null || widget.resource.filePath!.isEmpty) {
+      _showMessage('错误: 该资源没有关联的音频文件');
+      return;
+    }
+
     setState(() {
       isSplitting = true;
     });
@@ -139,13 +146,18 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
       print('开始分割音频: ${widget.resource.title}');
 
-      // 获取音频文件的本地缓存路径
-      final audioPath = await AudioCacheService.instance.getAudioFilePath(
-        'audio/${widget.resource.title}',
-      );
+      // 使用 DatabaseHelper 构建音频文件路径
+      final audioPath = await DatabaseHelper.buildAudioFilePath(widget.resource.filePath!);
 
-      print('音频文件已缓存到: $audioPath');
-      print('文件是否存在: ${File(audioPath).existsSync()}');
+      print('音频文件路径: $audioPath');
+      
+      final audioFile = File(audioPath);
+      final fileExists = await audioFile.exists();
+      print('文件是否存在: $fileExists');
+
+      if (!fileExists) {
+        throw Exception('音频文件不存在: $audioPath');
+      }
 
       // 执行分割（使用用户设置的参数）
       print('执行 FFmpeg 静音检测... (时长: ${silenceDuration}s, 阈值: ${silenceThreshold}dB)');
@@ -193,6 +205,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
         setState(() {
           isSplitting = false;
         });
+        print("分割失败:" + e.toString());
         _showMessage('分割失败: ${e.toString()}');
       }
     }
@@ -449,6 +462,7 @@ extension on AudioResource {
       segmentationStatus: segmentationStatus ?? this.segmentationStatus,
       lastStudied: lastStudied,
       segments: segments ?? this.segments,
+      filePath: filePath, // 保留原有的 filePath
     );
   }
 }
