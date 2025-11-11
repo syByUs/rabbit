@@ -32,31 +32,23 @@ class ResourceCard extends ConsumerWidget {
       }
 
       try {
-        // 如果 resource 有 filePath（存储的是文件名），动态构建完整路径
-        if (resource.filePath != null && resource.filePath!.isNotEmpty) {
-          // 使用文件名构建当前的完整路径
-          final localFilePath = await DatabaseHelper.buildAudioFilePath(resource.filePath!);
-          final file = File(localFilePath);
-          
-          if (await file.exists()) {
-            // 从本地文件播放（导入的资源）
-            debugPrint('Playing from local file: $localFilePath');
-            await AudioHelper.playFile(localFilePath);
-            ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
-          } else {
-            debugPrint('Local file does not exist: $localFilePath');
-            // 文件不存在，尝试从assets播放
-            String assetPath = 'audio/${resource.title}';
-            debugPrint('Fallback to asset: $assetPath');
-            await AudioHelper.playAsset(assetPath);
-            ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
-          }
-        } else {
-          // 没有本地文件路径，从assets播放（示例资源）
-          String assetPath = 'audio/${resource.title}';
-          debugPrint('Playing from asset: $assetPath');
-          await AudioHelper.playAsset(assetPath);
+        // 必须有 filePath 才能播放
+        if (resource.filePath == null || resource.filePath!.isEmpty) {
+          debugPrint('无法播放: 资源没有关联的音频文件');
+          return;
+        }
+
+        // 使用文件名构建当前的完整路径
+        final localFilePath = await DatabaseHelper.buildAudioFilePath(resource.filePath!);
+        final file = File(localFilePath);
+        
+        if (await file.exists()) {
+          // 从本地文件播放
+          debugPrint('Playing from local file: $localFilePath');
+          await AudioHelper.playFile(localFilePath);
           ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+        } else {
+          debugPrint('文件不存在: $localFilePath');
         }
       } catch (e, stackTrace) {
         debugPrint('播放错误: $e');

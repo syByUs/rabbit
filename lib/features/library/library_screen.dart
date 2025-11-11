@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
 import 'package:rabbit/core/themes/app_theme.dart';
 import '../../core/providers/app_state_provider.dart';
 import '../../core/models/resource_model.dart';

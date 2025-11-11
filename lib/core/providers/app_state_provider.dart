@@ -119,17 +119,15 @@ class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
 class ResourceListNotifier extends _$ResourceListNotifier {
   @override
   List<AudioResource> build() {
-    // 初始返回空列表，然后在初始化方法中加载数据
+    // 初始化时加载数据库中的资源
     _loadResources();
-    return sampleResources;
+    return [];
   }
 
   Future<void> _loadResources() async {
     // 加载数据库中的资源
     final resources = await DatabaseHelper.getAllAudioResources();
-    if (resources.isNotEmpty) {
-      state = resources.map((e) => e.toAudioResource()).toList();
-    }
+    state = resources.map((e) => e.toAudioResource()).toList();
   }
 
   Future<void> updateResource(AudioResource updatedResource) async {
@@ -164,16 +162,30 @@ class ResourceListNotifier extends _$ResourceListNotifier {
       return;
     }
 
+    // 创建包含 filePath 的新资源
+    final resourceWithPath = AudioResource(
+      id: newResource.id,
+      title: newResource.title,
+      duration: newResource.duration,
+      progress: newResource.progress,
+      status: newResource.status,
+      category: newResource.category,
+      segmentationStatus: newResource.segmentationStatus,
+      lastStudied: newResource.lastStudied,
+      segments: newResource.segments,
+      filePath: appFilePath, // 添加文件路径
+    );
+
     // 保存到数据库（包含文件路径）
     final isarResource = AudioResourceIsar.fromAudioResource(
-      newResource,
+      resourceWithPath,
       filePath: appFilePath,
       originalFileName: newResource.title,
     );
     await DatabaseHelper.saveAudioResource(isarResource);
 
-    // 更新状态
-    state = [newResource, ...state];
+    // 更新状态（使用包含 filePath 的资源）
+    state = [resourceWithPath, ...state];
   }
 
   Future<void> deleteResource(String resourceId) async {

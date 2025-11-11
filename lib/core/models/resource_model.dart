@@ -107,34 +107,6 @@ class AudioResource {
   }
 }
 
-// 示例数据
-List<AudioResource> sampleResources = [
-  AudioResource(
-    id: '音乐1',
-    title: 'voice_001.mp3',
-    duration: '02:42',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.custom,
-  ),
-  AudioResource(
-    id: 'getvoice1',
-    title: 'getvoice1.mp3',
-    duration: '03:15',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.custom,
-  ),
-  AudioResource(
-    id: 'getvoice2',
-    title: 'getvoice2.mp3',
-    duration: '02:42',
-    progress: 0,
-    status: LearningStatus.notStarted,
-    category: ResourceCategory.custom,
-  )
-];
-
 /// ============================================
 /// 学习单元模型
 /// ============================================

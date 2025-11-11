@@ -23,12 +23,14 @@ class AudioHelper {
     });
   }
 
-  /// Play audio from assets
+  /// Play audio from assets (DEPRECATED: 应用现在只支持从文件导入播放)
+  @Deprecated('Use playFile instead. App now only supports imported audio files.')
   static Future<void> playAsset(String assetPath) async {
     await _player.play(AssetSource(assetPath));
   }
 
-  /// Play audio from URL
+  /// Play audio from URL (DEPRECATED: 应用现在只支持从文件导入播放)
+  @Deprecated('Use playFile instead. App now only supports imported audio files.')
   static Future<void> playUrl(String url) async {
     await _player.play(UrlSource(url));
   }
