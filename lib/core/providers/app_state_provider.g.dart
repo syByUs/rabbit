@@ -80,7 +80,7 @@ final audioPlaybackNotifierProvider = AutoDisposeNotifierProvider<
 
 typedef _$AudioPlaybackNotifier = AutoDisposeNotifier<AudioPlaybackState>;
 String _$resourceListNotifierHash() =>
-    r'6d04bf8c44741f6bb2f0165da52ccead48dd7fec';
+    r'c25570be1c90fd9d1b1b7043cb7e79a0635db274';
 
 /// ============================================
 /// 资源列表状态

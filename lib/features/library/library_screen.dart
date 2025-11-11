@@ -7,7 +7,7 @@ import '../../core/providers/app_state_provider.dart';
 import '../../core/models/resource_model.dart';
 import '../../core/utils/audio_helper.dart';
 import 'widgets/resource_card.dart';
-import 'widgets/search_bar.dart';
+// import 'widgets/search_bar.dart';
 import 'widgets/category_tabs.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -133,17 +133,17 @@ class LibraryScreen extends ConsumerWidget {
           // 创建新的音频资源
           final newResource = AudioResource(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: path.basenameWithoutExtension(fileName),
+            title: fileName, // 保留完整文件名（包含扩展名）
             duration: durationText,
             progress: 0,
             status: LearningStatus.notStarted,
             category: ResourceCategory.custom,
           );
 
-          // 添加到资源列表
-          ref
+          // 添加到资源列表（同时复制文件到应用目录）
+          await ref
               .read(resourceListNotifierProvider.notifier)
-              .addResource(newResource);
+              .addResource(newResource, filePath);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('成功导入: $fileName')),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/audio_helper.dart';
+import '../../../core/database/database_helper.dart';
 import '../../detail/detail_screen.dart';
 import 'segmentation_dialog.dart';
 
@@ -16,7 +18,7 @@ class ResourceCard extends ConsumerWidget {
     required this.resource,
   });
 
-  void _togglePlayback(WidgetRef ref) {
+  void _togglePlayback(WidgetRef ref) async {
     final playbackState = ref.read(audioPlaybackNotifierProvider);
     final isCurrent = playbackState.isCurrentResource(resource.id);
     final isPlaying = isCurrent && playbackState.isPlaying;
@@ -29,9 +31,37 @@ class ResourceCard extends ConsumerWidget {
         AudioHelper.stop();
       }
 
-      String assetPath = 'audio/${resource.title}';
-      AudioHelper.playAsset(assetPath);
-      ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+      try {
+        // 从数据库获取音频文件路径
+        final isarResource = await DatabaseHelper.getAudioResourceById(resource.id);
+        String? localFilePath = isarResource?.filePath;
+
+        if (localFilePath != null && localFilePath.isNotEmpty) {
+          final file = File(localFilePath);
+          if (await file.exists()) {
+            // 从本地文件播放（导入的资源）
+            debugPrint('Playing from local file: $localFilePath');
+            await AudioHelper.playFile(localFilePath);
+            ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+          } else {
+            debugPrint('Local file does not exist: $localFilePath');
+            // 文件不存在，尝试从assets播放
+            String assetPath = 'audio/${resource.title}';
+            debugPrint('Fallback to asset: $assetPath');
+            await AudioHelper.playAsset(assetPath);
+            ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+          }
+        } else {
+          // 没有本地文件路径，从assets播放（示例资源）
+          String assetPath = 'audio/${resource.title}';
+          debugPrint('Playing from asset: $assetPath');
+          await AudioHelper.playAsset(assetPath);
+          ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+        }
+      } catch (e, stackTrace) {
+        debugPrint('播放错误: $e');
+        debugPrint('堆栈跟踪: $stackTrace');
+      }
     }
   }
 

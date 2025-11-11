@@ -17,30 +17,30 @@ const AudioResourceIsarSchema = CollectionSchema(
   name: r'AudioResourceIsar',
   id: -2347300928621584448,
   properties: {
-    r'assetPath': PropertySchema(
-      id: 0,
-      name: r'assetPath',
-      type: IsarType.string,
-    ),
     r'category': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'category',
       type: IsarType.string,
     ),
     r'duration': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'duration',
       type: IsarType.string,
     ),
     r'filePath': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'filePath',
       type: IsarType.string,
     ),
     r'lastStudied': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'lastStudied',
       type: IsarType.dateTime,
+    ),
+    r'originalFileName': PropertySchema(
+      id: 4,
+      name: r'originalFileName',
+      type: IsarType.string,
     ),
     r'progress': PropertySchema(
       id: 5,
@@ -103,12 +103,6 @@ int _audioResourceIsarEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
-    final value = object.assetPath;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
     final value = object.category;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -122,6 +116,12 @@ int _audioResourceIsarEstimateSize(
   }
   {
     final value = object.filePath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.originalFileName;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -159,11 +159,11 @@ void _audioResourceIsarSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.assetPath);
-  writer.writeString(offsets[1], object.category);
-  writer.writeString(offsets[2], object.duration);
-  writer.writeString(offsets[3], object.filePath);
-  writer.writeDateTime(offsets[4], object.lastStudied);
+  writer.writeString(offsets[0], object.category);
+  writer.writeString(offsets[1], object.duration);
+  writer.writeString(offsets[2], object.filePath);
+  writer.writeDateTime(offsets[3], object.lastStudied);
+  writer.writeString(offsets[4], object.originalFileName);
   writer.writeLong(offsets[5], object.progress);
   writer.writeString(offsets[6], object.resourceId);
   writer.writeString(offsets[7], object.segmentationStatus);
@@ -178,12 +178,12 @@ AudioResourceIsar _audioResourceIsarDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = AudioResourceIsar();
-  object.assetPath = reader.readStringOrNull(offsets[0]);
-  object.category = reader.readStringOrNull(offsets[1]);
-  object.duration = reader.readStringOrNull(offsets[2]);
-  object.filePath = reader.readStringOrNull(offsets[3]);
+  object.category = reader.readStringOrNull(offsets[0]);
+  object.duration = reader.readStringOrNull(offsets[1]);
+  object.filePath = reader.readStringOrNull(offsets[2]);
   object.id = id;
-  object.lastStudied = reader.readDateTimeOrNull(offsets[4]);
+  object.lastStudied = reader.readDateTimeOrNull(offsets[3]);
+  object.originalFileName = reader.readStringOrNull(offsets[4]);
   object.progress = reader.readLongOrNull(offsets[5]);
   object.resourceId = reader.readStringOrNull(offsets[6]);
   object.segmentationStatus = reader.readStringOrNull(offsets[7]);
@@ -206,9 +206,9 @@ P _audioResourceIsarDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
-    case 4:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
       return (reader.readLongOrNull(offset)) as P;
     case 6:
@@ -387,160 +387,6 @@ extension AudioResourceIsarQueryWhere
 
 extension AudioResourceIsarQueryFilter
     on QueryBuilder<AudioResourceIsar, AudioResourceIsar, QFilterCondition> {
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'assetPath',
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'assetPath',
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'assetPath',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'assetPath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'assetPath',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'assetPath',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
-      assetPathIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'assetPath',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
       categoryIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1129,6 +975,160 @@ extension AudioResourceIsarQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'originalFileName',
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'originalFileName',
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'originalFileName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'originalFileName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'originalFileName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'originalFileName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterFilterCondition>
+      originalFileNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'originalFileName',
+        value: '',
       ));
     });
   }
@@ -1833,20 +1833,6 @@ extension AudioResourceIsarQueryLinks
 extension AudioResourceIsarQuerySortBy
     on QueryBuilder<AudioResourceIsar, AudioResourceIsar, QSortBy> {
   QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
-      sortByAssetPath() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetPath', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
-      sortByAssetPathDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetPath', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
       sortByCategory() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.asc);
@@ -1899,6 +1885,20 @@ extension AudioResourceIsarQuerySortBy
       sortByLastStudiedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastStudied', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
+      sortByOriginalFileName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalFileName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
+      sortByOriginalFileNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalFileName', Sort.desc);
     });
   }
 
@@ -1976,20 +1976,6 @@ extension AudioResourceIsarQuerySortBy
 extension AudioResourceIsarQuerySortThenBy
     on QueryBuilder<AudioResourceIsar, AudioResourceIsar, QSortThenBy> {
   QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
-      thenByAssetPath() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetPath', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
-      thenByAssetPathDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'assetPath', Sort.desc);
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
       thenByCategory() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.asc);
@@ -2055,6 +2041,20 @@ extension AudioResourceIsarQuerySortThenBy
       thenByLastStudiedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastStudied', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
+      thenByOriginalFileName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalFileName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QAfterSortBy>
+      thenByOriginalFileNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'originalFileName', Sort.desc);
     });
   }
 
@@ -2132,13 +2132,6 @@ extension AudioResourceIsarQuerySortThenBy
 extension AudioResourceIsarQueryWhereDistinct
     on QueryBuilder<AudioResourceIsar, AudioResourceIsar, QDistinct> {
   QueryBuilder<AudioResourceIsar, AudioResourceIsar, QDistinct>
-      distinctByAssetPath({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'assetPath', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QDistinct>
       distinctByCategory({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'category', caseSensitive: caseSensitive);
@@ -2163,6 +2156,14 @@ extension AudioResourceIsarQueryWhereDistinct
       distinctByLastStudied() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastStudied');
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, AudioResourceIsar, QDistinct>
+      distinctByOriginalFileName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'originalFileName',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2212,13 +2213,6 @@ extension AudioResourceIsarQueryProperty
   }
 
   QueryBuilder<AudioResourceIsar, String?, QQueryOperations>
-      assetPathProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'assetPath');
-    });
-  }
-
-  QueryBuilder<AudioResourceIsar, String?, QQueryOperations>
       categoryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'category');
@@ -2243,6 +2237,13 @@ extension AudioResourceIsarQueryProperty
       lastStudiedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastStudied');
+    });
+  }
+
+  QueryBuilder<AudioResourceIsar, String?, QQueryOperations>
+      originalFileNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'originalFileName');
     });
   }
 

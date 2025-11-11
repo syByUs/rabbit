@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'audio_resource_schema.dart';
 
 /// 数据库操作帮助类
@@ -23,6 +24,9 @@ class DatabaseHelper {
         await isarDir.create(recursive: true);
       }
 
+      // 确保音频文件目录存在
+      await _ensureAudioDirectory();
+
       return await Isar.open(
         [AudioResourceIsarSchema],
         directory: isarDir.path,
@@ -31,6 +35,60 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint('Failed to initialize Isar database: $e');
       rethrow;
+    }
+  }
+
+  /// 获取音频文件存储目录
+  static Future<Directory> getAudioDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final audioDir = Directory('${appDir.path}/audio_files');
+    if (!await audioDir.exists()) {
+      await audioDir.create(recursive: true);
+    }
+    return audioDir;
+  }
+
+  /// 确保音频文件目录存在
+  static Future<void> _ensureAudioDirectory() async {
+    await getAudioDirectory();
+  }
+
+  /// 将音频文件复制到应用私有目录
+  static Future<String?> copyAudioFileToAppDirectory(String sourcePath, String fileName) async {
+    try {
+      final audioDir = await getAudioDirectory();
+      final fileNameWithoutPath = path.basename(fileName);
+      final destinationPath = path.join(audioDir.path, fileNameWithoutPath);
+
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        debugPrint('Source audio file does not exist: $sourcePath');
+        return null;
+      }
+
+      final destinationFile = await sourceFile.copy(destinationPath);
+      debugPrint('Audio file copied to: ${destinationFile.path}');
+      return destinationFile.path;
+    } catch (e) {
+      debugPrint('Failed to copy audio file: $e');
+      return null;
+    }
+  }
+
+  /// 获取音频文件的本地路径
+  static Future<String?> getAudioFilePath(String fileName) async {
+    try {
+      final audioDir = await getAudioDirectory();
+      final filePath = path.join(audioDir.path, path.basename(fileName));
+      final file = File(filePath);
+
+      if (await file.exists()) {
+        return filePath;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Failed to get audio file path: $e');
+      return null;
     }
   }
 

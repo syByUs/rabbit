@@ -148,9 +148,24 @@ class ResourceListNotifier extends _$ResourceListNotifier {
     ];
   }
 
-  Future<void> addResource(AudioResource newResource) async {
-    // 保存到数据库
-    final isarResource = AudioResourceIsar.fromAudioResource(newResource);
+  Future<void> addResource(AudioResource newResource, String sourceFilePath) async {
+    // 将音频文件复制到应用私有目录
+    final String? appFilePath = await DatabaseHelper.copyAudioFileToAppDirectory(
+      sourceFilePath,
+      newResource.title,
+    );
+
+    if (appFilePath == null) {
+      debugPrint('Failed to copy audio file, resource will not be added');
+      return;
+    }
+
+    // 保存到数据库（包含文件路径）
+    final isarResource = AudioResourceIsar.fromAudioResource(
+      newResource,
+      filePath: appFilePath,
+      originalFileName: newResource.title,
+    );
     await DatabaseHelper.saveAudioResource(isarResource);
 
     // 更新状态

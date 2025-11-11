@@ -18,13 +18,13 @@ class AudioResourceIsar {
   String? segmentationStatus;
   DateTime? lastStudied;
 
-  // 文件路径
-  String? filePath;
-  String? assetPath;
+  // 存储音频文件的实际路径（在应用私有目录中）
+  String? filePath;  // 本地文件路径
+  String? originalFileName;  // 原始文件名
 
   AudioResourceIsar();
 
-  AudioResourceIsar.fromAudioResource(AudioResource resource, {this.filePath, this.assetPath}) {
+  AudioResourceIsar.fromAudioResource(AudioResource resource, {this.filePath, this.originalFileName}) {
     resourceId = resource.id;
     title = resource.title;
     duration = resource.duration;
