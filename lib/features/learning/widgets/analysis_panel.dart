@@ -9,6 +9,7 @@ import 'package:markdown_widget/widget/markdown_block.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/providers/app_state_provider.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'dart:math' as math;
 
 class AnalysisPanelWidget extends ConsumerStatefulWidget {
   final bool isVisible;
@@ -138,17 +139,26 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
           if (widget.isVisible || isLoading)
             AnimatedSize(
               duration: AppDuration.normal,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    : markdownContent != null
-                        ? _buildAnalysisResults()
-                        : const SizedBox.shrink(),
+
+              // 1. (关键修复) 用 ClipRect 包裹
+              child: ClipRect(
+                // 2. ClipRect 会阻止 child (Container)
+                //    向 AnimatedSize 报告其"溢出"的宽度。
+                //    AnimatedSize 将始终使用 Column 提供的有限宽度。
+                child: Container(
+                  width: double.infinity, // 3. 这个 Container 现在会正确地
+                  //    获取 Column 的有限宽度
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: isLoading
+                      ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                      : markdownContent != null
+                      ? _buildAnalysisResults()
+                      : const SizedBox.shrink(),
+                ),
               ),
-            ),
+            )
         ],
       ),
     );
@@ -178,11 +188,35 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
     ],
   );
 
-  Widget buildMD() => MarkdownWidget( // <--- 移除 SingleChildScrollView
-    data: markdownContent ?? '',
-    markdownGenerator: myGenerator,
-    config: myConfig,
-    padding: const EdgeInsets.all(8.0), // <--- 将 padding 直接传给 MarkdownWidget
-  );
+  Widget buildMD() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width;
+
+        // 如果内容包含表格，允许宽度扩展到至少 800（可根据需要调整）
+        final bool hasTable = (markdownContent ?? '').contains(RegExp(r'^\s*\|.+\|', multiLine: true));
+        final double targetWidth = hasTable ? math.max(availableWidth, 800.0) : availableWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            // 关键：同时设置 minWidth 和 maxWidth 为有限值，避免子 ListView 收到 unbounded width
+            constraints: BoxConstraints(minWidth: targetWidth, maxWidth: targetWidth),
+            child: SizedBox(
+              width: targetWidth,
+              child: MarkdownWidget(
+                data: markdownContent ?? '',
+                markdownGenerator: myGenerator,
+                config: myConfig,
+                padding: const EdgeInsets.all(8.0),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
 }
