@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:markdown_widget/config/all.dart';
+import 'package:markdown_widget/config/toc.dart';
+import 'package:markdown_widget/widget/blocks/container/table.dart';
+import 'package:markdown_widget/widget/markdown.dart';
+import 'package:markdown_widget/widget/markdown_block.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/providers/app_state_provider.dart';
+import 'package:markdown/markdown.dart' as md;
 
 class AnalysisPanelWidget extends ConsumerStatefulWidget {
   final bool isVisible;
@@ -19,8 +26,9 @@ class AnalysisPanelWidget extends ConsumerStatefulWidget {
 
 class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
   bool isLoading = false;
+  String? markdownContent;
 
-  void _showAnalysis(BuildContext context) {
+  void _showAnalysis(BuildContext context) async {
     final isPro = ref.read(isProUserProvider);
     if (!isPro) {
       _showPaywall(context);
@@ -31,13 +39,25 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
       isLoading = true;
     });
 
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      widget.onShowAnalysis();
-      setState(() {
-        isLoading = false;
-      });
-    });
+    // 加载markdown文件
+    try {
+      final String content = await rootBundle.loadString('assets/markdown/chunk_002.md');
+      if (mounted) {
+        setState(() {
+          markdownContent = content;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          markdownContent = '# 加载失败\n\n无法加载分析内容：\`${e.toString()}\`';
+          isLoading = false;
+        });
+      }
+    }
+
+    widget.onShowAnalysis();
   }
 
   void _showPaywall(BuildContext context) {
@@ -82,7 +102,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.neutral0,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -91,7 +111,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -106,7 +126,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                   onPressed: () => _showAnalysis(context),
                   style: AppTheme.freeButtonStyle.copyWith(
                     padding: const WidgetStatePropertyAll(
-                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
                     ),
                   ),
                   child: const Text('解锁PRO功能'),
@@ -124,9 +144,9 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                     ? const Center(
                         child: CircularProgressIndicator(),
                       )
-                    : Column(
-                        children: _buildAnalysisResults(),
-                      ),
+                    : markdownContent != null
+                        ? _buildAnalysisResults()
+                        : const SizedBox.shrink(),
               ),
             ),
         ],
@@ -134,69 +154,35 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
     );
   }
 
-  List<Widget> _buildAnalysisResults() {
-    final analysisData = [
-      {
-        'word': '日本銀行',
-        'reading': 'にほんぎんこう',
-        'meaning': '[名词] 日本银行 (日本的中央银行)',
-      },
-      {
-        'word': '総裁',
-        'reading': 'そうさい',
-        'meaning': '[名词] 总裁, 行长',
-      },
-      {
-        'word': '金融政策',
-        'reading': 'きんゆうせいさく',
-        'meaning': '[名词] 货币政策, 金融政策',
-      },
-      {
-        'word': '決定会合',
-        'reading': 'けっていかいごう',
-        'meaning': '[名词] (政策)决定会议',
-      },
-    ];
-
-    return analysisData.map<Widget>((data) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.neutral200, width: 1.0),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              data['word']!,
-              style: const TextStyle(
-                fontSize: 18.0,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              data['reading']!,
-              style: TextStyle(
-                fontSize: 14.0,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              data['meaning']!,
-              style: const TextStyle(
-                fontSize: 16.0,
-                color: AppColors.textPrimary,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      );
-    }).toList();
+  Widget _buildAnalysisResults() {
+    return SizedBox(
+      height: 400, // 设置一个固定高度
+      child: buildMD(),
+    );
   }
+  final tocController = TocController();
+  // 2. (关键) 创建一个配置好 GFM 扩展的 MarkdownGenerator 实例
+  final MarkdownGenerator myGenerator = MarkdownGenerator(
+    // 3. (关键) 使用 'extensionSet' (单数) 参数
+    // 传入 'm.ExtensionSet.gitHubFlavored' 实例
+    extensionSet: md.ExtensionSet.gitHubFlavored,
+  );
+
+  // 3. 创建样式配置
+  final MarkdownConfig myConfig = MarkdownConfig(
+    configs: [
+      TableConfig(
+        // 在这里定义表格样式，例如边框、内边距等
+        border: TableBorder.all(color: Colors.grey.shade300, width: 1),
+      ),
+    ],
+  );
+
+  Widget buildMD() => MarkdownWidget( // <--- 移除 SingleChildScrollView
+    data: markdownContent ?? '',
+    markdownGenerator: myGenerator,
+    config: myConfig,
+    padding: const EdgeInsets.all(8.0), // <--- 将 padding 直接传给 MarkdownWidget
+  );
+
 }

@@ -47,13 +47,20 @@ dependencies:
   
   # Audio player
   audioplayers: ^6.1.0
-#  ffmpeg_kit_flutter_new_audio: ^2.0.0
   ffmpeg_kit_flutter_new: ^4.1.0
+
+  # file
   file_picker: ^10.3.3
 
   # Local database
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
+
+  #markdown
+#  flutter_markdown: ^0.7.1
+  markdown_widget: ^2.3.2+8
+  markdown: ^7.3.0
+
 
 dev_dependencies:
   flutter_test:
@@ -88,7 +95,8 @@ flutter:
 
   # Assets configuration
   assets:
-#    - assets/audio/
+    - assets/audio/
+    - assets/markdown/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
