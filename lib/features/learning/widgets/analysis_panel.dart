@@ -87,7 +87,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: AppTheme.proButtonStyle.copyWith(
-                  minimumSize: const WidgetStatePropertyAll<Size>(
+                  minimumSize: const MaterialStatePropertyAll<Size>(
                     Size(double.infinity, 48.0),
                   ),
                 ),
@@ -126,7 +126,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                 ElevatedButton(
                   onPressed: () => _showAnalysis(context),
                   style: AppTheme.freeButtonStyle.copyWith(
-                    padding: const WidgetStatePropertyAll(
+                    padding: const MaterialStatePropertyAll(
                       EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
                     ),
                   ),
@@ -182,38 +182,136 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
   final MarkdownConfig myConfig = MarkdownConfig(
     configs: [
       TableConfig(
-        // 在这里定义表格样式，例如边框、内边距等
+        // 只保留合法的 TableConfig 字段（示例：边框）
         border: TableBorder.all(color: Colors.grey.shade300, width: 1),
       ),
     ],
   );
 
+  /// 将 markdownContent 按块拆分为 table / non-table 块
+  List<Map<String, dynamic>> _splitMarkdownIntoBlocks(String src) {
+    final lines = src.split('\n');
+    final List<Map<String, dynamic>> blocks = [];
+    final buffer = <String>[];
+    bool inCodeFence = false;
+    bool currentIsTable = false;
+
+    bool lineLooksLikeTable(String line) {
+      final t = line.trim();
+      // 表格行通常以 '|' 开头，或者是表格分隔行（--- 在 | 中）
+      final sep = RegExp(r'^\s*\|?.*:-{1,}.*\|.*$');
+      return t.startsWith('|') || t.contains('|') && (t.contains('--') || sep.hasMatch(line));
+    }
+
+    void flush() {
+      if (buffer.isEmpty) return;
+      blocks.add({
+        'isTable': currentIsTable,
+        'text': buffer.join('\n'),
+      });
+      buffer.clear();
+    }
+
+    for (var line in lines) {
+      if (line.trim().startsWith('```')) {
+        // 切换 code fence 状态，并该行作为普通内容保留（避免把 code block 错误识别为表格）
+        buffer.add(line);
+        inCodeFence = !inCodeFence;
+        continue;
+      }
+
+      if (inCodeFence) {
+        buffer.add(line);
+        continue;
+      }
+
+      final isTableLine = lineLooksLikeTable(line);
+
+      if (buffer.isEmpty) {
+        // start new block
+        currentIsTable = isTableLine;
+        buffer.add(line);
+      } else if (isTableLine == currentIsTable) {
+        buffer.add(line);
+      } else {
+        // type changed -> flush and start new
+        flush();
+        currentIsTable = isTableLine;
+        buffer.add(line);
+      }
+    }
+
+    flush();
+    return blocks;
+  }
+
   Widget buildMD() {
+    final mdContent = markdownContent ?? '';
+    // 如果为空，直接返回空容器
+    if (mdContent.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final blocks = _splitMarkdownIntoBlocks(mdContent);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
 
-        // 如果内容包含表格，允许宽度扩展到至少 800（可根据需要调整）
-        final bool hasTable = (markdownContent ?? '').contains(RegExp(r'^\s*\|.+\|', multiLine: true));
-        final double targetWidth = hasTable ? math.max(availableWidth, 800.0) : availableWidth;
+        // 列表在外层已经被固定高度包裹（_buildAnalysisResults 中的 SizedBox），
+        // 这里使用 ListView 作为纵向滚动容器，避免嵌套可滚动冲突。
+        return ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: blocks.length,
+          itemBuilder: (context, index) {
+            final block = blocks[index];
+            final bool isTable = block['isTable'] as bool;
+            final String text = block['text'] as String;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            // 关键：同时设置 minWidth 和 maxWidth 为有限值，避免子 ListView 收到 unbounded width
-            constraints: BoxConstraints(minWidth: targetWidth, maxWidth: targetWidth),
-            child: SizedBox(
-              width: targetWidth,
-              child: MarkdownWidget(
-                data: markdownContent ?? '',
-                markdownGenerator: myGenerator,
-                config: myConfig,
-                padding: const EdgeInsets.all(8.0),
-              ),
-            ),
-          ),
+            if (isTable) {
+              // 给表格块提供可横向滚动且有限宽度的容器
+              final double minTableWidth = math.max(availableWidth, 800.0);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: minTableWidth, maxWidth: minTableWidth),
+                    child: SizedBox(
+                      width: minTableWidth,
+                      child: MarkdownWidget(
+                        data: text,
+                        markdownGenerator: myGenerator,
+                        config: myConfig,
+                        padding: const EdgeInsets.all(8.0),
+
+                        // 关键：内部不滚动，按内容包裹高度，避免嵌套滚动冲突
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              // 普通块按纵向流式渲染
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: MarkdownWidget(
+                  data: text,
+                  markdownGenerator: myGenerator,
+                  config: myConfig,
+                  padding: const EdgeInsets.all(8.0),
+
+                  // 关键：内部不滚动，按内容包裹高度，避免嵌套滚动冲突
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                ),
+              );
+            }
+          },
         );
       },
     );
