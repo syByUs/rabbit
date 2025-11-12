@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
-import 'widgets/subtitle_display.dart';
+import 'widgets/control_display.dart';
 import 'widgets/analysis_panel.dart';
 
 class LearningScreen extends StatefulWidget {
@@ -39,12 +39,12 @@ class _LearningScreenState extends State<LearningScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
 
             // 字幕显示
-            SubtitleDisplayWidget(segment: widget.segment),
+            ControlDisplayWidget(segment: widget.segment),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.sm),
 
             // 词法分析面板
             AnalysisPanelWidget(
@@ -52,7 +52,7 @@ class _LearningScreenState extends State<LearningScreen> {
               onShowAnalysis: _showAnalysis,
             ),
 
-            const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),

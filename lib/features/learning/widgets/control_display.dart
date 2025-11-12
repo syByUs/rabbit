@@ -2,63 +2,36 @@ import 'package:flutter/material.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 
-class SubtitleDisplayWidget extends StatefulWidget {
+class ControlDisplayWidget extends StatefulWidget {
   final LearningSegment segment;
 
-  const SubtitleDisplayWidget({
+  const ControlDisplayWidget({
     super.key,
     required this.segment,
   });
 
   @override
-  State<SubtitleDisplayWidget> createState() => _SubtitleDisplayWidgetState();
+  State<ControlDisplayWidget> createState() => _ControlDisplayWidgetState();
 }
 
-class _SubtitleDisplayWidgetState extends State<SubtitleDisplayWidget> {
-  late String currentSubtitle;
+class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
   bool isPlaying = false;
   bool isLoopEnabled = false;
   bool isRandomEnabled = false;
 
-  // 模拟字幕内容
-  final List<String> subtitles = [
-    '日本銀行の植田和男総裁は...',
-    '金融政策決定会合で...',
-    '追加の利上げを見送ることを決定しました。',
-  ];
-
   @override
   void initState() {
     super.initState();
-    currentSubtitle = subtitles.first;
   }
 
   void _togglePlay() {
     setState(() {
       isPlaying = !isPlaying;
       if (isPlaying) {
-        _startSubtitleAnimation();
       }
     });
   }
 
-  void _startSubtitleAnimation() {
-    if (!isPlaying) return;
-
-    int currentIndex = 0;
-    const interval = Duration(seconds: 2);
-
-    Future.delayed(interval, () {
-      if (!mounted || !isPlaying) return;
-
-      setState(() {
-        currentIndex = (currentIndex + 1) % subtitles.length;
-        currentSubtitle = subtitles[currentIndex];
-      });
-
-      _startSubtitleAnimation();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,24 +45,6 @@ class _SubtitleDisplayWidgetState extends State<SubtitleDisplayWidget> {
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.neutral100,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Text(
-              currentSubtitle,
-              style: const TextStyle(
-                fontSize: 20.0,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                height: 1.8,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
           _buildControls(),
         ],
       ),

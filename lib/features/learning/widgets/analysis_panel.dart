@@ -112,7 +112,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs, horizontal: AppSpacing.md),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -139,7 +139,6 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
           if (widget.isVisible || isLoading)
             AnimatedSize(
               duration: AppDuration.normal,
-
               // 1. (关键修复) 用 ClipRect 包裹
               child: ClipRect(
                 // 2. ClipRect 会阻止 child (Container)
@@ -148,7 +147,8 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                 child: Container(
                   width: double.infinity, // 3. 这个 Container 现在会正确地
                   //    获取 Column 的有限宽度
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  color: Colors.white,
                   child: isLoading
                       ? const Center(
                     child: CircularProgressIndicator(),
@@ -274,7 +274,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
               // 给表格块提供可横向滚动且有限宽度的容器
               final double minTableWidth = math.max(availableWidth, 800.0);
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: ConstrainedBox(
@@ -285,7 +285,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                         data: text,
                         markdownGenerator: myGenerator,
                         config: myConfig,
-                        padding: const EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.all(3.0),
 
                         // 关键：内部不滚动，按内容包裹高度，避免嵌套滚动冲突
                         shrinkWrap: true,
@@ -298,12 +298,12 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
             } else {
               // 普通块按纵向流式渲染
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: MarkdownWidget(
                   data: text,
                   markdownGenerator: myGenerator,
                   config: myConfig,
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(3.0),
 
                   // 关键：内部不滚动，按内容包裹高度，避免嵌套滚动冲突
                   shrinkWrap: true,
