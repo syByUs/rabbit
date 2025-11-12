@@ -130,7 +130,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                       EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
                     ),
                   ),
-                  child: const Text('解锁PRO功能'),
+                  child: const Text('查看分析'),
                 ),
               ],
             ),
