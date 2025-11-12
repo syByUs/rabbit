@@ -107,48 +107,6 @@ class AudioResource {
   }
 }
 
-/// ============================================
-/// 学习单元模型
-/// ============================================
-
-class LearningSegment {
-  final String id;
-  final String title;
-  final Duration startTime;
-  final Duration endTime;
-  final String transcript;
-  final bool isCompleted;
-
-  LearningSegment({
-    required this.id,
-    required this.title,
-    required this.startTime,
-    required this.endTime,
-    required this.transcript,
-    this.isCompleted = false,
-  });
-
-  /// 获取时长字符串
-  String get durationText {
-    final duration = endTime - startTime;
-    final seconds = duration.inSeconds;
-    return '$seconds秒';
-  }
-
-  /// 获取时间范围字符串
-  String get timeRange {
-    final start = _formatDuration(startTime);
-    final end = _formatDuration(endTime);
-    return '$start - $end ($durationText)';
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-}
-
 /// 词法分析模型
 class WordAnalysis {
   final String word;

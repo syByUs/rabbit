@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../core/themes/app_theme.dart';
-import '../../../core/models/resource_model.dart';
+import '../../../core/models/audio_segment_model.dart';
 
 class ControlDisplayWidget extends StatefulWidget {
-  final LearningSegment segment;
+  final AudioSegment segment;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
 
   const ControlDisplayWidget({
     super.key,
     required this.segment,
+    this.onPrevious,
+    this.onNext,
   });
 
   @override
@@ -59,7 +63,12 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
           children: [
             _ControlButton(
               icon: Icons.fast_rewind,
-              onPressed: () => _showMessage('上一段'),
+              onPressed: widget.onPrevious != null
+                  ? () {
+                      widget.onPrevious!();
+                      _showMessage('上一段');
+                    }
+                  : null,
             ),
             const SizedBox(width: AppSpacing.md),
             _PlayButton(
@@ -69,7 +78,12 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
             const SizedBox(width: AppSpacing.md),
             _ControlButton(
               icon: Icons.fast_forward,
-              onPressed: () => _showMessage('下一段'),
+              onPressed: widget.onNext != null
+                  ? () {
+                      widget.onNext!();
+                      _showMessage('下一段');
+                    }
+                  : null,
             ),
           ],
         ),
@@ -125,7 +139,7 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
 
 class _ControlButton extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _ControlButton({
     required this.icon,

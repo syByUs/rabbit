@@ -304,7 +304,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           currentLoop: isLoopingThis ? loopCount + 1 : 0,
           totalLoops: totalLoops,
           onTap: () => _playSegment(segment, index),
-          onDetailTap: () => _openSegment(segment),
+          onDetailTap: () => _openSegment(index),
           onPlayTap: () => _playSegment(segment, index),
           onLoopTap: () => _startLoopPlay(segment, index),
           onLoopTogglePause: _toggleLoopPause,
@@ -579,18 +579,13 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     AudioHelper.stop();
   }
 
-  void _openSegment(AudioSegment segment) {
+  void _openSegment(int currentIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => LearningScreen(
-          segment: LearningSegment(
-            id: 'segment_${segment.start}',
-            title: '片段 ${segment.start.toStringAsFixed(1)}s - ${segment.end.toStringAsFixed(1)}s',
-            startTime: Duration(seconds: segment.start.toInt()),
-            endTime: Duration(seconds: segment.end.toInt()),
-            transcript: '音频片段内容 - 时间: ${segment.timeRange}',
-            isCompleted: false,
-          ),
+          resource: widget.resource,
+          segments: segments!,
+          initialIndex: currentIndex,
         ),
       ),
     );
