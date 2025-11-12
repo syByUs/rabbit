@@ -4,14 +4,18 @@ import '../../../core/models/audio_segment_model.dart';
 
 class ControlDisplayWidget extends StatefulWidget {
   final AudioSegment segment;
+  final bool isPlaying;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+  final VoidCallback onPlayToggle;
 
   const ControlDisplayWidget({
     super.key,
     required this.segment,
+    required this.isPlaying,
     this.onPrevious,
     this.onNext,
+    required this.onPlayToggle,
   });
 
   @override
@@ -19,21 +23,12 @@ class ControlDisplayWidget extends StatefulWidget {
 }
 
 class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
-  bool isPlaying = false;
   bool isLoopEnabled = false;
   bool isRandomEnabled = false;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  void _togglePlay() {
-    setState(() {
-      isPlaying = !isPlaying;
-      if (isPlaying) {
-      }
-    });
   }
 
 
@@ -72,8 +67,8 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
             ),
             const SizedBox(width: AppSpacing.md),
             _PlayButton(
-              isPlaying: isPlaying,
-              onPressed: _togglePlay,
+              isPlaying: widget.isPlaying,
+              onPressed: widget.onPlayToggle,
             ),
             const SizedBox(width: AppSpacing.md),
             _ControlButton(

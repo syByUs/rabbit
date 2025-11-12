@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
+import '../../../core/services/audio_cache_service.dart';
+import '../../../core/utils/audio_helper.dart';
+import '../../../core/database/database_helper.dart';
 import 'widgets/control_display.dart';
 import 'widgets/analysis_panel.dart';
 
@@ -25,12 +28,30 @@ class _LearningScreenState extends State<LearningScreen> {
   bool isAnalysisVisible = false;
   late int _currentIndex;
   late AudioSegment _currentSegment;
+  bool _isPlaying = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _currentSegment = widget.segments[_currentIndex];
+    _setupAudioListeners();
+  }
+
+  @override
+  void dispose() {
+    AudioHelper.stop();
+    super.dispose();
+  }
+
+  void _setupAudioListeners() {
+    AudioHelper.player.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
   }
 
   void _showAnalysis() {
@@ -39,12 +60,54 @@ class _LearningScreenState extends State<LearningScreen> {
     });
   }
 
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await AudioHelper.pause();
+      setState(() {
+        _isPlaying = false;
+      });
+    } else {
+      await _playCurrentSegment();
+    }
+  }
+
+  Future<void> _playCurrentSegment() async {
+    try {
+      final segmentIndex = _currentIndex;
+      final resourceId = widget.resource.id;
+
+      // 检查音频片段是否已缓存
+      final hasCache = await AudioCacheService.instance.hasSegment(resourceId, segmentIndex);
+
+      if (!hasCache) {
+        _showMessage('音频片段未准备好，请先返回列表页播放');
+        return;
+      }
+
+      final segmentPath = AudioCacheService.instance.getSegmentPath(resourceId, segmentIndex);
+
+      setState(() {
+        _isPlaying = true;
+      });
+
+      await AudioHelper.playFile(segmentPath);
+    } catch (e) {
+      _showMessage('播放失败: $e');
+      setState(() {
+        _isPlaying = false;
+      });
+    }
+  }
+
   void _navigateToPrevious() {
     if (_currentIndex > 0) {
       setState(() {
         _currentIndex--;
         _currentSegment = widget.segments[_currentIndex];
+        _isPlaying = false;
       });
+      // 可选：自动播放上一段
+      // _playCurrentSegment();
     }
   }
 
@@ -53,8 +116,17 @@ class _LearningScreenState extends State<LearningScreen> {
       setState(() {
         _currentIndex++;
         _currentSegment = widget.segments[_currentIndex];
+        _isPlaying = false;
       });
+      // 可选：自动播放下一段
+      // _playCurrentSegment();
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   bool get _hasPrevious => _currentIndex > 0;
@@ -107,8 +179,10 @@ class _LearningScreenState extends State<LearningScreen> {
             // 字幕显示
             ControlDisplayWidget(
               segment: _currentSegment,
+              isPlaying: _isPlaying,
               onPrevious: _hasPrevious ? _navigateToPrevious : null,
               onNext: _hasNext ? _navigateToNext : null,
+              onPlayToggle: _togglePlay,
             ),
 
             const SizedBox(height: AppSpacing.sm),
