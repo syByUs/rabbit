@@ -36,8 +36,8 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.neutral0,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -73,7 +73,7 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xs),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [

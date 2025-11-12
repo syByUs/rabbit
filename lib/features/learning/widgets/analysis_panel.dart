@@ -165,8 +165,27 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
   }
 
   Widget _buildAnalysisResults() {
+    // 通过 context 获取当前控件在屏幕上的全局 y 坐标，然后计算剩余高度
+    final media = MediaQuery.of(context);
+    // 尝试读取当前 RenderBox 的全局位置（如果尚未布局，会返回 null，使用 fallback）
+    double topY = 0.0;
+    try {
+      final rb = context.findRenderObject();
+      if (rb is RenderBox) {
+        final global = rb.localToGlobal(Offset.zero);
+        topY = global.dy;
+      }
+    } catch (_) {
+      topY = 0.0;
+    }
+
+    // 可用高度 = 屏幕高度 - topY - 底部留白34
+    final double availableHeight = media.size.height - topY - 34.0;
+    // 限制一个最小高度，避免过小导致布局问题
+    final double resultHeight = math.max(120.0, availableHeight);
+
     return SizedBox(
-      height: 400, // 设置一个固定高度
+      height: resultHeight,
       child: buildMD(),
     );
   }
