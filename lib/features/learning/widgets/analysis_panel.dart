@@ -88,7 +88,7 @@ class _AnalysisPanelWidgetState extends ConsumerState<AnalysisPanelWidget> {
                 onPressed: () => Navigator.of(context).pop(),
                 style: AppTheme.proButtonStyle.copyWith(
                   minimumSize: const MaterialStatePropertyAll<Size>(
-                    Size(double.infinity, 48.0),
+                    Size(double.infinity, 30.0),
                   ),
                 ),
                 child: const Text('立即升级'),
