@@ -178,37 +178,11 @@ class _LearningScreenState extends State<LearningScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(widget.resource.title),
+        title: Text(widget.resource.title + ' - $title'),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: AppSpacing.sm),
-
-            // 导航指示器
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.neutral0,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                boxShadow: AppShadows.small,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: AppSpacing.sm),
 
             // 字幕显示
