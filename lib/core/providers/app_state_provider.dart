@@ -55,12 +55,18 @@ class AudioPlaybackState {
   final bool isPlaying;
   final Duration? duration;
   final Duration? position;
+  final int? currentSegmentIndex;
+  final bool isLoopEnabled;
+  final bool isRandomEnabled;
 
   AudioPlaybackState({
     this.currentResourceId,
     required this.isPlaying,
     this.duration,
     this.position,
+    this.currentSegmentIndex,
+    this.isLoopEnabled = false,
+    this.isRandomEnabled = false,
   });
 
   AudioPlaybackState copyWith({
@@ -68,17 +74,27 @@ class AudioPlaybackState {
     bool? isPlaying,
     Duration? duration,
     Duration? position,
+    int? currentSegmentIndex,
+    bool? isLoopEnabled,
+    bool? isRandomEnabled,
   }) {
     return AudioPlaybackState(
       currentResourceId: currentResourceId ?? this.currentResourceId,
       isPlaying: isPlaying ?? this.isPlaying,
       duration: duration ?? this.duration,
       position: position ?? this.position,
+      currentSegmentIndex: currentSegmentIndex ?? this.currentSegmentIndex,
+      isLoopEnabled: isLoopEnabled ?? this.isLoopEnabled,
+      isRandomEnabled: isRandomEnabled ?? this.isRandomEnabled,
     );
   }
 
   bool isCurrentResource(String resourceId) {
     return currentResourceId == resourceId;
+  }
+
+  bool isCurrentSegment(String resourceId, int segmentIndex) {
+    return currentResourceId == resourceId && currentSegmentIndex == segmentIndex;
   }
 }
 
@@ -90,10 +106,11 @@ class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
     return AudioPlaybackState(isPlaying: false);
   }
 
-  void startPlaying(String resourceId) {
-    state = AudioPlaybackState(
+  void startPlaying(String resourceId, [int? segmentIndex]) {
+    state = state.copyWith(
       currentResourceId: resourceId,
       isPlaying: true,
+      currentSegmentIndex: segmentIndex,
     );
   }
 
@@ -106,8 +123,29 @@ class AudioPlaybackNotifier extends _$AudioPlaybackNotifier {
   }
 
   void stop() {
-    state = AudioPlaybackState(isPlaying: false);
+    state = state.copyWith(isPlaying: false);
   }
+
+  void updateSegmentIndex(int segmentIndex) {
+    state = state.copyWith(currentSegmentIndex: segmentIndex);
+  }
+
+  void toggleLoop() {
+    state = state.copyWith(
+      isLoopEnabled: !state.isLoopEnabled,
+      isRandomEnabled: false,
+    );
+  }
+
+  void toggleRandom() {
+    state = state.copyWith(
+      isRandomEnabled: !state.isRandomEnabled,
+      isLoopEnabled: false,
+    );
+  }
+
+  bool get isLoopEnabled => state.isLoopEnabled;
+  bool get isRandomEnabled => state.isRandomEnabled;
 }
 
 /// ============================================

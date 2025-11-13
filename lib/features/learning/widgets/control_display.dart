@@ -2,35 +2,29 @@ import 'package:flutter/material.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/audio_segment_model.dart';
 
-class ControlDisplayWidget extends StatefulWidget {
+class ControlDisplayWidget extends StatelessWidget {
   final AudioSegment segment;
   final bool isPlaying;
+  final bool isLoopEnabled;
+  final bool isRandomEnabled;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onPlayToggle;
+  final VoidCallback onLoopToggle;
+  final VoidCallback onRandomToggle;
 
   const ControlDisplayWidget({
     super.key,
     required this.segment,
     required this.isPlaying,
+    required this.isLoopEnabled,
+    required this.isRandomEnabled,
     this.onPrevious,
     this.onNext,
     required this.onPlayToggle,
+    required this.onLoopToggle,
+    required this.onRandomToggle,
   });
-
-  @override
-  State<ControlDisplayWidget> createState() => _ControlDisplayWidgetState();
-}
-
-class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
-  bool isLoopEnabled = false;
-  bool isRandomEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -58,27 +52,17 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
           children: [
             _ControlButton(
               icon: Icons.fast_rewind,
-              onPressed: widget.onPrevious != null
-                  ? () {
-                      widget.onPrevious!();
-                      _showMessage('上一段');
-                    }
-                  : null,
+              onPressed: onPrevious,
             ),
             const SizedBox(width: AppSpacing.md),
             _PlayButton(
-              isPlaying: widget.isPlaying,
-              onPressed: widget.onPlayToggle,
+              isPlaying: isPlaying,
+              onPressed: onPlayToggle,
             ),
             const SizedBox(width: AppSpacing.md),
             _ControlButton(
               icon: Icons.fast_forward,
-              onPressed: widget.onNext != null
-                  ? () {
-                      widget.onNext!();
-                      _showMessage('下一段');
-                    }
-                  : null,
+              onPressed: onNext,
             ),
           ],
         ),
@@ -90,17 +74,12 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
               icon: Icons.loop,
               label: '循环',
               isActive: isLoopEnabled,
-              onTap: () {
-                setState(() {
-                  isLoopEnabled = !isLoopEnabled;
-                });
-                _showMessage(isLoopEnabled ? '循环模式已开启' : '循环模式已关闭');
-              },
+              onTap: onLoopToggle,
             ),
             Column(
               children: [
                 Text(
-                  widget.segment.timeRange,
+                  segment.timeRange,
                   style: TextStyle(
                     fontSize: 14.0,
                     color: AppColors.textSecondary,
@@ -112,22 +91,11 @@ class _ControlDisplayWidgetState extends State<ControlDisplayWidget> {
               icon: Icons.shuffle,
               label: '随机',
               isActive: isRandomEnabled,
-              onTap: () {
-                setState(() {
-                  isRandomEnabled = !isRandomEnabled;
-                });
-                _showMessage(isRandomEnabled ? '随机播放已开启' : '随机播放已关闭');
-              },
+              onTap: onRandomToggle,
             ),
           ],
         ),
       ],
-    );
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }
@@ -248,3 +216,4 @@ class _SettingsItem extends StatelessWidget {
     );
   }
 }
+
