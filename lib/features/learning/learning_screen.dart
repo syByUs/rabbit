@@ -3,6 +3,7 @@ import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
 import '../../../core/services/audio_cache_service.dart';
+import '../../../core/services/audio_segmentation_service.dart';
 import '../../../core/utils/audio_helper.dart';
 import '../../../core/database/database_helper.dart';
 import 'widgets/control_display.dart';
@@ -75,23 +76,57 @@ class _LearningScreenState extends State<LearningScreen> {
     try {
       final segmentIndex = _currentIndex;
       final resourceId = widget.resource.id;
+      final segment = _currentSegment;
+
+      print('🎵 准备播放片段 $segmentIndex: ${segment.timeRange}');
 
       // 检查音频片段是否已缓存
       final hasCache = await AudioCacheService.instance.hasSegment(resourceId, segmentIndex);
 
-      if (!hasCache) {
-        _showMessage('音频片段未准备好，请先返回列表页播放');
-        return;
+      if (hasCache) {
+        // 直接播放已缓存的音频
+        print('✅ 使用缓存的音频片段');
+        final segmentPath = AudioCacheService.instance.getSegmentPath(resourceId, segmentIndex);
+
+        setState(() {
+          _isPlaying = true;
+        });
+
+        await AudioHelper.playFile(segmentPath);
+        print('🔊 开始播放缓存音频: $segmentPath');
+      } else {
+        // 需要先分割音频
+        print('⚙️ 音频片段未缓存，开始分割...');
+
+        // 检查资源是否有文件路径
+        if (widget.resource.filePath == null || widget.resource.filePath!.isEmpty) {
+          throw Exception('资源没有关联的音频文件');
+        }
+
+        // 1. 获取原始音频文件路径
+        final originalAudioPath = await DatabaseHelper.buildAudioFilePath(widget.resource.filePath!);
+        print('📂 原始音频路径: $originalAudioPath');
+
+        // 2. 使用 FFmpeg 分割音频片段
+        final outputPath = AudioCacheService.instance.getSegmentPath(resourceId, segmentIndex);
+        await AudioSegmentationService.exportSingleSegment(
+          inputPath: originalAudioPath,
+          outputPath: outputPath,
+          segment: segment,
+        );
+
+        print('✅ 音频分割完成，准备播放');
+
+        // 3. 播放分割后的音频
+        setState(() {
+          _isPlaying = true;
+        });
+
+        await AudioHelper.playFile(outputPath);
+        print('🔊 开始播放新分割的音频: $outputPath');
       }
-
-      final segmentPath = AudioCacheService.instance.getSegmentPath(resourceId, segmentIndex);
-
-      setState(() {
-        _isPlaying = true;
-      });
-
-      await AudioHelper.playFile(segmentPath);
     } catch (e) {
+      print('❌ 播放失败: $e');
       _showMessage('播放失败: $e');
       setState(() {
         _isPlaying = false;
@@ -107,7 +142,7 @@ class _LearningScreenState extends State<LearningScreen> {
         _isPlaying = false;
       });
       // 可选：自动播放上一段
-      // _playCurrentSegment();
+      _playCurrentSegment();
     }
   }
 
@@ -119,7 +154,7 @@ class _LearningScreenState extends State<LearningScreen> {
         _isPlaying = false;
       });
       // 可选：自动播放下一段
-      // _playCurrentSegment();
+      _playCurrentSegment();
     }
   }
 
