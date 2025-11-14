@@ -226,41 +226,52 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
               child: LoadingIndicator(message: '正在加载分割数据...'),
             )
           else if (displaySegments == null || displaySegments.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              decoration: BoxDecoration(
-                color: AppColors.neutral0,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                boxShadow: AppShadows.small,
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '🎧',
-                    style: TextStyle(
-                      fontSize: 48.0,
-                      color: AppColors.textSecondary.withOpacity(0.5),
-                    ),
+            // 使用 Center + ConstrainedBox 自适应宽度，防止在大屏幕上过宽或在小屏幕上溢出
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  // 最小保留一些边距，最大不超过屏幕宽度的 96% 或 600px（按需调整）
+                  maxWidth: MediaQuery.of(context).size.width * 0.96,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral0,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.small,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    '此音频尚未分割',
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '🎧',
+                        style: TextStyle(
+                          fontSize: 48.0,
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        '此音频尚未分割',
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        '点击上方"静音分割"按钮开始',
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '点击上方"静音分割"按钮开始',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                ),
               ),
             )
           else
