@@ -252,7 +252,7 @@ class _LearningScreenState extends ConsumerState<LearningScreen> {
       backgroundColor: AppColors.neutral50,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new_sharp),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(widget.resource.title + ' - $title'),

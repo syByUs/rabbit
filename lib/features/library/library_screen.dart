@@ -43,19 +43,19 @@ class LibraryScreen extends ConsumerWidget {
           fontWeight: FontWeight.w700,
         ),
         actions: [
-          Consumer(
-            builder: (context, ref, child) {
-              final isPro = ref.watch(isProUserProvider);
-              return Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.md),
-                child: ElevatedButton(
-                  onPressed: () => _showPaywall(context, ref),
-                  style: isPro ? AppTheme.proButtonStyle : AppTheme.freeButtonStyle,
-                  child: Text(isPro ? '💎 PRO版' : '💎 免费版'),
-                ),
-              );
-            },
-          ),
+          // Consumer(
+          //   builder: (context, ref, child) {
+          //     final isPro = ref.watch(isProUserProvider);
+          //     return Padding(
+          //       padding: const EdgeInsets.only(right: AppSpacing.md),
+          //       child: ElevatedButton(
+          //         onPressed: () => _showPaywall(context, ref),
+          //         style: isPro ? AppTheme.proButtonStyle : AppTheme.freeButtonStyle,
+          //         child: Text(isPro ? '💎 PRO版' : '💎 免费版'),
+          //       ),
+          //     );
+          //   },
+          // ),
         ],
       ),
       body: Column(
@@ -64,7 +64,7 @@ class LibraryScreen extends ConsumerWidget {
           // const SearchBarWidget(),
 
           // 分类标签
-          const CategoryTabsWidget(),
+          // const CategoryTabsWidget(),
 
           // 资源列表
           Expanded(
