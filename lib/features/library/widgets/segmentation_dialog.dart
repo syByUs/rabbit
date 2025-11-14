@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rabbit/core/utils/toast.dart';
 import '../../../core/models/audio_segment_model.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/services/audio_segmentation_service.dart';
@@ -126,19 +127,15 @@ class _SegmentationDialogState extends ConsumerState<SegmentationDialog> {
           );
           ref.read(resourceListNotifierProvider.notifier).updateResource(segmentedResource);
 
-          // 显示结果
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('分割完成！找到 ${segments.length} 个段落')),
-          );
+          showMessage('分割完成！找到 ${segments.length} 个段落', context);
         } else {
           final failedResource = widget.resource.copyWith(
             segmentationStatus: SegmentationStatus.notSegmented,
           );
           ref.read(resourceListNotifierProvider.notifier).updateResource(failedResource);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('未检测到适合的分割点')),
-          );
+          showMessage('未检测到适合的分割点', context);
+
         }
       }
     } catch (e) {

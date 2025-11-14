@@ -13,6 +13,7 @@ import '../../../core/utils/audio_helper.dart';
 import '../../../core/database/database_helper.dart';
 import '../../learning/learning_screen.dart';
 import 'loading_indicator.dart';
+import 'package:rabbit/core/utils/toast.dart';
 
 class SegmentListWidget extends ConsumerStatefulWidget {
   final AudioResource resource;
@@ -426,24 +427,14 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           });
           
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('音频分割失败: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showMessage('音频分割失败: $e', context);
           }
         }
       }
     } catch (e) {
       print('❌ 播放失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('播放失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showMessage('播放失败: $e', context);
       }
     }
   }
@@ -500,12 +491,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
           });
           
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('音频分割失败，无法循环播放: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showMessage('音频分割失败，无法循环播放: $e', context);
           }
           return;
         }
@@ -539,12 +525,7 @@ class _SegmentListWidgetState extends ConsumerState<SegmentListWidget> {
     } catch (e) {
       print('❌ 循环播放失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('循环播放失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showMessage('循环播放失败: $e', context);
       }
     }
   }
