@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rabbit/core/utils/toast.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
@@ -247,9 +248,7 @@ class _SplitSectionWidgetState extends ConsumerState<SplitSectionWidget> {
 
   void _showMessage(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      showMessage(message, context);
     }
   }
 

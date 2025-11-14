@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rabbit/core/utils/toast.dart';
 import '../../../core/themes/app_theme.dart';
 import '../../../core/models/resource_model.dart';
 import '../../../core/models/audio_segment_model.dart';
@@ -182,9 +183,7 @@ class _LearningScreenState extends ConsumerState<LearningScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showMessage(message, context);
   }
 
   void _toggleLoop() {

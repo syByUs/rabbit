@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rabbit/core/themes/app_theme.dart';
+import 'package:rabbit/core/utils/toast.dart';
 import '../../core/providers/app_state_provider.dart';
 import '../../core/models/resource_model.dart';
 import '../../core/utils/audio_helper.dart';
 import 'widgets/resource_card.dart';
-// import 'widgets/search_bar.dart';
 import 'widgets/category_tabs.dart';
+
+// 公用的消息弹窗函数
+void _showMessage(BuildContext context, String message) {
+  showMessage(message, context);
+}
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -87,9 +92,7 @@ class LibraryScreen extends ConsumerWidget {
   void _showPaywall(BuildContext context, WidgetRef ref) {
     final isPro = ref.read(isProUserProvider);
     if (isPro) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('您已经是PRO用户！')),
-      );
+      _showMessage(context, '您已经是PRO用户！');
       return;
     }
 
@@ -112,9 +115,7 @@ class LibraryScreen extends ConsumerWidget {
       }
 
       // 显示导入状态
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('正在导入音频文件...')),
-      );
+      _showMessage(context, '正在导入音频文件...');
 
       // 处理导入的文件
       final ref = ProviderScope.containerOf(context);
@@ -146,19 +147,13 @@ class LibraryScreen extends ConsumerWidget {
               .read(resourceListNotifierProvider.notifier)
               .addResource(newResource, filePath);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('成功导入: $fileName')),
-          );
+          _showMessage(context, '成功导入: $fileName');
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('导入失败: $fileName - $e')),
-          );
+          _showMessage(context, '导入失败: $fileName - $e');
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('文件选择出错: $e')),
-      );
+      _showMessage(context, '文件选择出错: $e');
     }
   }
 
@@ -302,8 +297,6 @@ class PaywallModal extends StatelessWidget {
   void _upgradeToPro(BuildContext context) {
     Navigator.of(context).pop();
     // 这里应该调用升级API
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🎉 恭喜！您已升级为PRO用户！')),
-    );
+    _showMessage(context, '🎉 恭喜！您已升级为PRO用户！');
   }
 }

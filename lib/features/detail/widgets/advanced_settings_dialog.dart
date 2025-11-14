@@ -37,118 +37,126 @@ class _AdvancedSettingsDialogState extends State<AdvancedSettingsDialog> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.xl),
         width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 标题
-            Row(
+        // 限制最大高度并可滚动，防止内容超出导致 overflow
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '💎',
-                  style: TextStyle(fontSize: 24.0),
+                // 标题
+                Row(
+                  children: [
+                    const Text(
+                      '💎',
+                      style: TextStyle(fontSize: 24.0),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      '高级设置',
+                      style: TextStyle(
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '高级设置',
+                  '自定义静音检测参数以获得最佳分割效果',
                   style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    fontSize: 14.0,
+                    color: AppColors.textSecondary,
                   ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // 静音时长阈值设置
+                _buildSettingSection(
+                  title: '静音时长阈值',
+                  description: '检测为静音所需的最短持续时间',
+                  icon: Icons.timer_outlined,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _buildSlider(
+                  value: silenceDuration,
+                  min: 0.3,
+                  max: 2.0,
+                  divisions: 17,
+                  label: '${silenceDuration.toStringAsFixed(1)}秒',
+                  onChanged: (value) => setState(() => silenceDuration = value),
+                ),
+                _buildValueDisplay('${silenceDuration.toStringAsFixed(1)} 秒'),
+
+                const SizedBox(height: AppSpacing.xl),
+
+                // 静音分贝阈值设置
+                _buildSettingSection(
+                  title: '静音分贝阈值',
+                  description: '音量低于此值时视为静音',
+                  icon: Icons.volume_down_outlined,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _buildSlider(
+                  value: -silenceThreshold,
+                  min: 30,
+                  max: 60,
+                  divisions: 30,
+                  label: '${silenceThreshold.toInt()}dB',
+                  onChanged: (value) => setState(() => silenceThreshold = -value),
+                ),
+                _buildValueDisplay('${silenceThreshold.toInt()} dB'),
+
+                const SizedBox(height: AppSpacing.sm),
+                _buildTip(
+                  '💡 提示：值越小越严格，建议从默认值开始调整',
+                ),
+
+                const SizedBox(height: AppSpacing.xl),
+
+                // 预设选项
+                _buildPresetSection(),
+
+                const SizedBox(height: AppSpacing.xl),
+
+                // 按钮
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('取消'),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context, {
+                          'silenceDuration': silenceDuration,
+                          'silenceThreshold': silenceThreshold,
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary500,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                      child: const Text('应用设置'),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '自定义静音检测参数以获得最佳分割效果',
-              style: TextStyle(
-                fontSize: 14.0,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // 静音时长阈值设置
-            _buildSettingSection(
-              title: '静音时长阈值',
-              description: '检测为静音所需的最短持续时间',
-              icon: Icons.timer_outlined,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSlider(
-              value: silenceDuration,
-              min: 0.3,
-              max: 2.0,
-              divisions: 17,
-              label: '${silenceDuration.toStringAsFixed(1)}秒',
-              onChanged: (value) => setState(() => silenceDuration = value),
-            ),
-            _buildValueDisplay('${silenceDuration.toStringAsFixed(1)} 秒'),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // 静音分贝阈值设置
-            _buildSettingSection(
-              title: '静音分贝阈值',
-              description: '音量低于此值时视为静音',
-              icon: Icons.volume_down_outlined,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSlider(
-              value: -silenceThreshold,
-              min: 30,
-              max: 60,
-              divisions: 30,
-              label: '${silenceThreshold.toInt()}dB',
-              onChanged: (value) => setState(() => silenceThreshold = -value),
-            ),
-            _buildValueDisplay('${silenceThreshold.toInt()} dB'),
-
-            const SizedBox(height: AppSpacing.sm),
-            _buildTip(
-              '💡 提示：值越小越严格，建议从默认值开始调整',
-            ),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // 预设选项
-            _buildPresetSection(),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            // 按钮
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('取消'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context, {
-                      'silenceDuration': silenceDuration,
-                      'silenceThreshold': silenceThreshold,
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary500,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.md,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                  child: const Text('应用设置'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
