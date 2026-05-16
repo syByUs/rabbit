@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+VIDEO_CONVERSION_GUIDE.md
+VIDEO_CONVERSION_QUICK_START.md
+.vscode/settings.json

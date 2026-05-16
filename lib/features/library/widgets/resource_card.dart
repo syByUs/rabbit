@@ -7,16 +7,14 @@ import '../../../core/models/resource_model.dart';
 import '../../../core/providers/app_state_provider.dart';
 import '../../../core/utils/audio_helper.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/video_conversion_service.dart';
 import '../../detail/detail_screen.dart';
 import 'segmentation_dialog.dart';
 
 class ResourceCard extends ConsumerWidget {
   final AudioResource resource;
 
-  const ResourceCard({
-    super.key,
-    required this.resource,
-  });
+  const ResourceCard({super.key, required this.resource});
 
   void _togglePlayback(WidgetRef ref) async {
     final playbackState = ref.read(audioPlaybackNotifierProvider);
@@ -39,14 +37,18 @@ class ResourceCard extends ConsumerWidget {
         }
 
         // 使用文件名构建当前的完整路径
-        final localFilePath = await DatabaseHelper.buildAudioFilePath(resource.filePath!);
+        final localFilePath = await DatabaseHelper.buildAudioFilePath(
+          resource.filePath!,
+        );
         final file = File(localFilePath);
-        
+
         if (await file.exists()) {
           // 从本地文件播放
           debugPrint('Playing from local file: $localFilePath');
           await AudioHelper.playFile(localFilePath);
-          ref.read(audioPlaybackNotifierProvider.notifier).startPlaying(resource.id);
+          ref
+              .read(audioPlaybackNotifierProvider.notifier)
+              .startPlaying(resource.id);
         } else {
           debugPrint('文件不存在: $localFilePath');
         }
@@ -57,10 +59,35 @@ class ResourceCard extends ConsumerWidget {
     }
   }
 
-  void _showSegmentationDialog(BuildContext context) {
+  void _showSegmentationDialog(BuildContext context) async {
+    if (resource.title.endsWith('mkv')) {
+      debugPrint('检测到 MKV 文件: ${resource.title}');
+      debugPrint('文件路径: ${resource.filePath}');
+
+      final videoPath = await DatabaseHelper.buildAudioFilePath(
+        resource.filePath!,
+      );
+      debugPrint('完整路径: $videoPath');
+
+      // 显示转换确认对话框
+      _showConversionDialog(context, videoPath);
+    } else {
+      showDialog(
+        context: context,
+        builder: (_) => SegmentationDialog(resource: resource),
+      );
+    }
+  }
+
+  /// 显示视频转换对话框
+  void _showConversionDialog(BuildContext context, String videoPath) {
     showDialog(
       context: context,
-      builder: (_) => SegmentationDialog(resource: resource),
+      barrierDismissible: false,
+      builder: (context) => _VideoConversionDialog(
+        videoPath: videoPath,
+        resourceTitle: resource.title,
+      ),
     );
   }
 
@@ -70,7 +97,8 @@ class ResourceCard extends ConsumerWidget {
     final isCurrent = playbackState.isCurrentResource(resource.id);
     final isPlaying = isCurrent && playbackState.isPlaying;
 
-    bool showSegmentation = resource.segmentationStatus != SegmentationStatus.notSegmented;
+    bool showSegmentation =
+        resource.segmentationStatus != SegmentationStatus.notSegmented;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -85,10 +113,7 @@ class ResourceCard extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               border: Border(
-                left: BorderSide(
-                  color: resource.getStatusColor(),
-                  width: 4.0,
-                ),
+                left: BorderSide(color: resource.getStatusColor(), width: 4.0),
               ),
             ),
             child: Column(
@@ -129,10 +154,10 @@ class ResourceCard extends ConsumerWidget {
             resource.segmentationStatus == SegmentationStatus.segmenting
                 ? Icons.hourglass_empty
                 : resource.segmentationStatus == SegmentationStatus.segmented
-                    ? Icons.check_circle
-                    : resource.segmentationStatus == SegmentationStatus.failed
-                        ? Icons.error
-                        : Icons.cut,
+                ? Icons.check_circle
+                : resource.segmentationStatus == SegmentationStatus.failed
+                ? Icons.error
+                : Icons.cut,
             color: AppColors.primary500,
             size: 20.0,
           ),
@@ -189,8 +214,8 @@ class ResourceCard extends ConsumerWidget {
             resource.segmentationStatus == SegmentationStatus.segmenting
                 ? Icons.hourglass_empty
                 : resource.segmentationStatus == SegmentationStatus.segmented
-                    ? Icons.check_circle
-                    : Icons.error,
+                ? Icons.check_circle
+                : Icons.error,
             size: 14.0,
             color: statusColor,
           ),
@@ -273,13 +298,11 @@ class ResourceCard extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.xs / 2),
             Text(
-              resource.status == LearningStatus.learning && resource.lastStudied != null
+              resource.status == LearningStatus.learning &&
+                      resource.lastStudied != null
                   ? '最近学习: ${_formatDate(resource.lastStudied!)}'
                   : LearningStatusStyle.getStatusText(resource.status.value),
-              style: TextStyle(
-                fontSize: 12.0,
-                color: AppColors.textTertiary,
-              ),
+              style: TextStyle(fontSize: 12.0, color: AppColors.textTertiary),
             ),
           ],
         ),
@@ -317,10 +340,7 @@ class ProgressRingPainter extends CustomPainter {
   final double progress;
   final Color color;
 
-  const ProgressRingPainter({
-    required this.progress,
-    required this.color,
-  });
+  const ProgressRingPainter({required this.progress, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -358,5 +378,139 @@ class ProgressRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(ProgressRingPainter oldDelegate) {
     return oldDelegate.progress != progress || oldDelegate.color != color;
+  }
+}
+
+/// ============================================
+/// 视频转换对话框
+/// ============================================
+
+class _VideoConversionDialog extends StatefulWidget {
+  final String videoPath;
+  final String resourceTitle;
+
+  const _VideoConversionDialog({
+    required this.videoPath,
+    required this.resourceTitle,
+  });
+
+  @override
+  State<_VideoConversionDialog> createState() => _VideoConversionDialogState();
+}
+
+class _VideoConversionDialogState extends State<_VideoConversionDialog> {
+  bool _isConverting = false;
+  double _progress = 0.0;
+  String? _outputPath;
+  String? _errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('视频格式转换'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '文件: ${widget.resourceTitle}',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 16),
+          if (!_isConverting && _outputPath == null && _errorMessage == null)
+            const Text(
+              '检测到 MKV 格式视频，需要转换为 H.264 编码的 MP4 格式以确保兼容性。',
+              style: TextStyle(fontSize: 14),
+            ),
+          if (_isConverting) ...[
+            const Text('正在转换中，请稍候...'),
+            const SizedBox(height: 16),
+            LinearProgressIndicator(
+              value: _progress > 0 ? _progress / 100 : null,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '进度: ${_progress.toStringAsFixed(0)}%',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (_outputPath != null) ...[
+            const Icon(
+              Icons.check_circle,
+              color: AppColors.success500,
+              size: 48,
+            ),
+            const SizedBox(height: 8),
+            const Text('转换成功！'),
+            const SizedBox(height: 8),
+            Text(
+              '输出文件: $_outputPath',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (_errorMessage != null) ...[
+            const Icon(Icons.error, color: AppColors.warning500, size: 48),
+            const SizedBox(height: 8),
+            Text(
+              '转换失败: $_errorMessage',
+              style: const TextStyle(color: AppColors.warning500),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (!_isConverting && _outputPath == null && _errorMessage == null) ...[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: _startConversion,
+            child: const Text('开始转换'),
+          ),
+        ],
+        if (_outputPath != null || _errorMessage != null)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+      ],
+    );
+  }
+
+  /// 开始视频转换
+  Future<void> _startConversion() async {
+    setState(() {
+      _isConverting = true;
+      _progress = 0.0;
+      _errorMessage = null;
+    });
+
+    try {
+      final outputPath = await VideoConversionService.convertToH264(
+        inputPath: widget.videoPath,
+        onProgress: (progress) {
+          setState(() {
+            _progress = progress;
+          });
+        },
+      );
+
+      setState(() {
+        _isConverting = false;
+        _outputPath = outputPath;
+      });
+    } catch (e) {
+      setState(() {
+        _isConverting = false;
+        _errorMessage = e.toString();
+      });
+    }
   }
 }

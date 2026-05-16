@@ -106,7 +106,7 @@ class LibraryScreen extends ConsumerWidget {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'],
+        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'mkv', 'mp4'],
         allowMultiple: true,
       );
 
